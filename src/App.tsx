@@ -76,14 +76,14 @@ export default function App() {
             <div>
               <div className="flex items-center gap-1.5">
                 <span className="font-extrabold text-base sm:text-lg text-slate-900 leading-tight">
-                  Lớp Chủ Nhiệm
+                  Lớp LMS 11A7
                 </span>
                 <span className="hidden sm:inline-block px-2 py-0.5 bg-indigo-50 text-indigo-700 text-[10px] font-bold rounded-full">
                   Năm học 2026-2027
                 </span>
               </div>
               <p className="text-[11px] text-slate-500 hidden sm:block">
-                Cổng thu thập & tổng hợp thông tin học sinh
+                Thông tin học sinh tham gia học online qua hệ thống LMS
               </p>
             </div>
           </div>
@@ -155,7 +155,7 @@ export default function App() {
       <footer className="bg-white border-t border-slate-200/80 py-6 text-center text-xs text-slate-500 mt-auto">
         <div className="max-w-7xl mx-auto px-4 space-y-1.5">
           <p className="font-medium text-slate-600">
-            Hệ Thống Thu Thập & Tổng Hợp Dữ Liệu Học Sinh Lớp Chủ Nhiệm
+            Thông tin học sinh 11A7 tham gia LMS
           </p>
           <p className="text-slate-400">
             Giáo viên phụ trách:{' '}

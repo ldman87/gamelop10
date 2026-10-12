@@ -505,11 +505,11 @@ export const StudentForm: React.FC<StudentFormProps> = ({
         <div className="relative z-10">
           <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/15 backdrop-blur-md rounded-full text-xs font-semibold text-blue-100 mb-3 border border-white/20">
             <GraduationCap className="w-4 h-4 text-amber-300" />
-            LỚP CHỦ NHIỆM • NĂM HỌC 2026 - 2027
+            LỚP LMS 11A7 • NĂM HỌC 2026 - 2027
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-            Phiếu Thu Thập Thông Tin Học Sinh
+            Phiếu Điền Thông Tin học LMS
           </h1>
 
           <p className="mt-2 text-blue-100 text-xs sm:text-sm leading-relaxed max-w-2xl">
@@ -857,7 +857,7 @@ export const StudentForm: React.FC<StudentFormProps> = ({
               onChange={(e) =>
                 setFormData((prev) => ({ ...prev, notes: e.target.value }))
               }
-              placeholder="Ví dụ: Em tham gia tuyến xe buýt số 3; Hoàn cảnh gia đình; Năng khiếu..."
+              placeholder="Ví dụ: Em không có điện thoại học chung với bạn Thị Nở..."
               className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
             />
           </div>
