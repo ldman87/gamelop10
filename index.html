@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Thông Tin Học Sinh Tham Gia LMS - 11A7</title>
-    <meta name="description" content="Giáo viên chủ nhiệm thu thập." />
-    <meta property="og:title" content="Thông Tin Học Sinh Tham Gia LMS - 11A7" />
-    <meta property="og:description" content="Thông Tin Học Sinh Tham Gia LMS - 11A7." />
+    <title>Thông tin Học sinh tham gia LMS - 11A7</title>
+    <meta name="description" content="Thông tin Học sinh tham gia LMS - 11A7." />
+    <meta property="og:title" content="Thông tin Học sinh tham gia LMS - 11A7" />
+    <meta property="og:description" content="Thông tin Học sinh tham gia LMS - 11A7." />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -15,26 +15,32 @@
     <script>
       // 1. Guard against third-party extension injection conflicts & dev WebSocket notices
       window.addEventListener('error', function(event) {
+        var msg = (event && event.message) ? String(event.message) : '';
+        var filename = (event && event.filename) ? String(event.filename) : '';
         if (
-          event &&
-          event.message &&
-          (event.message.indexOf('ethereum') !== -1 ||
-           event.message.indexOf('evmAsk') !== -1 ||
-           event.message.indexOf('WebSocket') !== -1 ||
-           event.message.indexOf('websocket') !== -1 ||
-           event.message.indexOf('Cannot set property fetch') !== -1)
+          msg.indexOf('ethereum') !== -1 ||
+          msg.indexOf('evmAsk') !== -1 ||
+          msg.indexOf('WebSocket') !== -1 ||
+          msg.indexOf('websocket') !== -1 ||
+          msg.indexOf('M_ID') !== -1 ||
+          msg.indexOf('Cannot set property fetch') !== -1 ||
+          filename.indexOf('200.js') !== -1
         ) {
           event.stopImmediatePropagation();
+          event.preventDefault();
         }
       });
 
       window.addEventListener('unhandledrejection', function(event) {
+        var reason = event && event.reason;
+        var msg = (reason && reason.message) ? String(reason.message) : (typeof reason === 'string' ? reason : '');
+        var stack = (reason && reason.stack) ? String(reason.stack) : '';
         if (
-          event &&
-          event.reason &&
-          typeof event.reason.message === 'string' &&
-          (event.reason.message.indexOf('WebSocket') !== -1 ||
-           event.reason.message.indexOf('websocket') !== -1)
+          msg.indexOf('WebSocket') !== -1 ||
+          msg.indexOf('websocket') !== -1 ||
+          msg.indexOf('M_ID') !== -1 ||
+          stack.indexOf('200.js') !== -1 ||
+          stack.indexOf('M_ID') !== -1
         ) {
           event.preventDefault();
         }

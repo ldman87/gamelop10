@@ -30,6 +30,7 @@ import { StudentDetailModal } from './StudentDetailModal';
 import { EditStudentModal } from './EditStudentModal';
 import {
   fetchStudentsSafe,
+  subscribeStudentsRealtime,
   updateStudentSafe,
   deleteStudentSafe,
   resetSampleDataSafe,
@@ -89,13 +90,17 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   };
 
   useEffect(() => {
-    fetchData();
-    // Real-time polling every 5 seconds
-    const interval = setInterval(() => {
-      fetchData(true);
-    }, 5000);
+    setIsLoading(true);
+    // Real-time Cloud Firestore synchronization across all devices
+    const unsubscribe = subscribeStudentsRealtime((list) => {
+      setStudents(list);
+      setIsLoading(false);
+      setLastSyncTime(new Date());
+    });
 
-    return () => clearInterval(interval);
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   // Unique communes for filter

@@ -1,0 +1,97 @@
+{
+  "entities": {
+    "Student": {
+      "title": "Student",
+      "description": "Thông tin học sinh lớp chủ nhiệm",
+      "type": "object",
+      "properties": {
+        "fullName": {
+          "type": "string",
+          "description": "Họ và tên học sinh",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "dob": {
+          "type": "string",
+          "description": "Ngày tháng năm sinh (YYYY-MM-DD)",
+          "maxLength": 20
+        },
+        "hamlet": {
+          "type": "string",
+          "description": "Đội / Xóm",
+          "maxLength": 100
+        },
+        "village": {
+          "type": "string",
+          "description": "Thôn / Khu",
+          "maxLength": 100
+        },
+        "commune": {
+          "type": "string",
+          "description": "Xã (mới)",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "fullAddress": {
+          "type": "string",
+          "description": "Địa chỉ đầy đủ",
+          "maxLength": 255
+        },
+        "email": {
+          "type": "string",
+          "description": "Gmail cá nhân",
+          "maxLength": 100
+        },
+        "studentPhone": {
+          "type": "string",
+          "description": "Số điện thoại cá nhân học sinh",
+          "maxLength": 20
+        },
+        "hasNoStudentPhone": {
+          "type": "boolean",
+          "description": "Chưa có số điện thoại riêng"
+        },
+        "parentPhone": {
+          "type": "string",
+          "description": "Số điện thoại Phụ huynh",
+          "minLength": 8,
+          "maxLength": 20
+        },
+        "parentRelationship": {
+          "type": "string",
+          "description": "Quan hệ phụ huynh (Bố, Mẹ...)",
+          "maxLength": 50
+        },
+        "parentName": {
+          "type": "string",
+          "description": "Họ tên phụ huynh",
+          "maxLength": 100
+        },
+        "notes": {
+          "type": "string",
+          "description": "Ghi chú thêm",
+          "maxLength": 500
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Thời gian gửi ISO string",
+          "maxLength": 50
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Thời gian cập nhật",
+          "maxLength": 50
+        }
+      },
+      "required": ["fullName", "dob", "commune", "email", "parentPhone"]
+    }
+  },
+  "firestore": {
+    "/students/{studentId}": {
+      "schema": {
+        "$ref": "#/entities/Student"
+      },
+      "description": "Danh sách học sinh lớp chủ nhiệm nộp thông tin"
+    }
+  }
+}

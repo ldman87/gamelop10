@@ -1,6 +1,6 @@
 {
-  "name": "Cổng Thu Thập Thông Tin Học Sinh - Lớp Chủ Nhiệm",
-  "description": "Hệ thống thu thập thông tin học sinh đơn giản, tự động tổng hợp dữ liệu thời gian thực và xuất báo cáo Excel cho giáo viên chủ nhiệm.",
+  "name": "Thông tin Học sinh tham gia LMS - 11A7",
+  "description": "Thông tin Học sinh tham gia LMS - 11A7.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

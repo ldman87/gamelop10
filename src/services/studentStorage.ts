@@ -1,6 +1,19 @@
+import {
+  collection,
+  doc,
+  getDocs,
+  setDoc,
+  deleteDoc,
+  updateDoc,
+  onSnapshot,
+  query,
+  orderBy,
+} from 'firebase/firestore';
+import { db } from '../firebase';
 import { StudentInput, StudentSubmission } from '../types';
 
 const STORAGE_KEY = 'lop_chunhiem_students_data_v1';
+const COLLECTION_NAME = 'students';
 
 export const INITIAL_SAMPLE_STUDENTS: StudentSubmission[] = [
   {
@@ -19,74 +32,6 @@ export const INITIAL_SAMPLE_STUDENTS: StudentSubmission[] = [
     parentName: 'Nguyễn Văn Hùng',
     notes: 'Học sinh giỏi Toán năm lớp 9',
     createdAt: new Date(Date.now() - 3600 * 1000 * 24 * 2).toISOString(),
-  },
-  {
-    id: 'hs-2',
-    fullName: 'Trần Thị Mai Linh',
-    dob: '2009-08-22',
-    hamlet: 'Xóm 5',
-    village: 'Khu 2',
-    commune: 'Xã Đại Đồng (mới)',
-    fullAddress: 'Xóm 5, Khu 2, Xã Đại Đồng (mới)',
-    email: 'mailinh.tran09@gmail.com',
-    studentPhone: '0834567890',
-    hasNoStudentPhone: false,
-    parentPhone: '0978123456',
-    parentRelationship: 'Mẹ',
-    parentName: 'Phạm Thị Lan',
-    notes: 'Ban cán sự lớp, quản ca',
-    createdAt: new Date(Date.now() - 3600 * 1000 * 18).toISOString(),
-  },
-  {
-    id: 'hs-3',
-    fullName: 'Lê Hoàng Nam',
-    dob: '2009-11-05',
-    hamlet: 'Đội 1',
-    village: 'Thôn Thượng',
-    commune: 'Xã Tân Tiến (mới)',
-    fullAddress: 'Đội 1, Thôn Thượng, Xã Tân Tiến (mới)',
-    email: 'lehoangnam.hn2009@gmail.com',
-    studentPhone: '',
-    hasNoStudentPhone: true,
-    parentPhone: '0903456789',
-    parentRelationship: 'Bố',
-    parentName: 'Lê Quang Hải',
-    notes: 'Chưa có điện thoại riêng, liên hệ qua bố',
-    createdAt: new Date(Date.now() - 3600 * 1000 * 5).toISOString(),
-  },
-  {
-    id: 'hs-4',
-    fullName: 'Phạm Quỳnh Anh',
-    dob: '2009-01-30',
-    hamlet: 'Xóm Chùa',
-    village: 'Thôn Đông',
-    commune: 'Xã Hưng Thịnh (mới)',
-    fullAddress: 'Xóm Chùa, Thôn Đông, Xã Hưng Thịnh (mới)',
-    email: 'quynhanh.pham9a@gmail.com',
-    studentPhone: '0945678912',
-    hasNoStudentPhone: false,
-    parentPhone: '0912987654',
-    parentRelationship: 'Mẹ',
-    parentName: 'Đỗ Hồng Thắm',
-    notes: 'Tham gia đội tuyển Văn',
-    createdAt: new Date(Date.now() - 3600 * 1000 * 2).toISOString(),
-  },
-  {
-    id: 'hs-5',
-    fullName: 'Vũ Đức Thành',
-    dob: '2009-06-18',
-    hamlet: 'Đội 6',
-    village: 'Thôn Nam',
-    commune: 'Xã Đại Đồng (mới)',
-    fullAddress: 'Đội 6, Thôn Nam, Xã Đại Đồng (mới)',
-    email: 'ducthanh.vu2009@gmail.com',
-    studentPhone: '0867890123',
-    hasNoStudentPhone: false,
-    parentPhone: '0936123456',
-    parentRelationship: 'Bố',
-    parentName: 'Vũ Đình Trọng',
-    notes: '',
-    createdAt: new Date(Date.now() - 3600 * 1000 * 1).toISOString(),
   },
 ];
 
@@ -111,67 +56,90 @@ export function cleanEmailVN(email: string): string {
   return cleaned;
 }
 
-// Helper to get local data safely
+// Local cache
 export function getLocalData(): StudentSubmission[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_SAMPLE_STUDENTS));
-      return [...INITIAL_SAMPLE_STUDENTS];
-    }
+    if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : [...INITIAL_SAMPLE_STUDENTS];
+    return Array.isArray(parsed) ? parsed : [];
   } catch (err) {
-    console.warn('Error reading from localStorage:', err);
-    return [...INITIAL_SAMPLE_STUDENTS];
+    return [];
   }
 }
 
-// Helper to save local data safely
 export function saveLocalData(data: StudentSubmission[]): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   } catch (err) {
-    console.warn('Error writing to localStorage:', err);
+    console.warn('LocalStorage save error:', err);
   }
 }
 
 /**
- * Fetch all students with automatic fallback to localStorage
+ * Fetch all students from Cloud Firestore with fallback to local cache
  */
 export async function fetchStudentsSafe(): Promise<{
   data: StudentSubmission[];
-  isLocalOnly: boolean;
+  isCloudConnected: boolean;
 }> {
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3000);
+    const studentsCol = collection(db, COLLECTION_NAME);
+    const snap = await getDocs(studentsCol);
 
-    const res = await fetch('/api/students', { signal: controller.signal });
-    clearTimeout(timeoutId);
+    const list: StudentSubmission[] = [];
+    snap.forEach((docSnap) => {
+      const d = docSnap.data() as StudentSubmission;
+      list.push({ ...d, id: docSnap.id });
+    });
 
-    const contentType = res.headers.get('content-type') || '';
-    if (res.ok && contentType.includes('application/json')) {
-      const json = await res.json();
-      if (json && Array.isArray(json.data) && json.data.length > 0) {
-        saveLocalData(json.data);
-        return { data: json.data, isLocalOnly: false };
-      }
-    }
+    list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    // Update local cache
+    saveLocalData(list);
+    return { data: list, isCloudConnected: true };
   } catch (err) {
-    // API endpoint unreachable, timed out, or 404
+    console.warn('Firestore fetch failed, using local cache:', err);
+    const local = getLocalData();
+    return { data: local.length > 0 ? local : INITIAL_SAMPLE_STUDENTS, isCloudConnected: false };
   }
-
-  // Fallback to client localStorage
-  const localList = getLocalData();
-  localList.sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
-  return { data: localList, isLocalOnly: true };
 }
 
 /**
- * Create a new student record with instant saving guarantee
+ * Real-time listener for Firestore changes
+ */
+export function subscribeStudentsRealtime(
+  callback: (students: StudentSubmission[], isCloud: boolean) => void
+): () => void {
+  try {
+    const studentsCol = collection(db, COLLECTION_NAME);
+    const unsubscribe = onSnapshot(
+      studentsCol,
+      (snapshot) => {
+        const list: StudentSubmission[] = [];
+        snapshot.forEach((docSnap) => {
+          const d = docSnap.data() as StudentSubmission;
+          list.push({ ...d, id: docSnap.id });
+        });
+        list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        saveLocalData(list);
+        callback(list, true);
+      },
+      (error) => {
+        console.warn('Real-time snapshot error:', error);
+        callback(getLocalData(), false);
+      }
+    );
+    return unsubscribe;
+  } catch (err) {
+    console.warn('Failed to attach realtime snapshot:', err);
+    callback(getLocalData(), false);
+    return () => {};
+  }
+}
+
+/**
+ * Create a new student record directly in Cloud Firestore
  */
 export async function saveStudentSafe(
   formData: StudentInput
@@ -190,8 +158,10 @@ export async function saveStudentSafe(
   const normalizedParentPhone = cleanPhoneVN(formData.parentPhone);
   const normalizedEmail = cleanEmailVN(formData.email);
 
+  const studentId = 'hs-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6);
+
   const newRecord: StudentSubmission = {
-    id: 'hs-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
+    id: studentId,
     fullName: formData.fullName.trim(),
     dob: formData.dob,
     hamlet: formData.hamlet ? formData.hamlet.trim() : '',
@@ -208,59 +178,18 @@ export async function saveStudentSafe(
     createdAt: new Date().toISOString(),
   };
 
-  // Always save to local storage immediately so data is never lost!
-  const current = getLocalData();
-  // Check if not duplicate
-  const exists = current.some(
-    (s) =>
-      s.fullName.toLowerCase() === newRecord.fullName.toLowerCase() &&
-      s.parentPhone === newRecord.parentPhone
-  );
-  if (!exists) {
-    current.unshift(newRecord);
-  } else {
-    // Update existing
-    const idx = current.findIndex(
-      (s) =>
-        s.fullName.toLowerCase() === newRecord.fullName.toLowerCase() &&
-        s.parentPhone === newRecord.parentPhone
-    );
-    if (idx !== -1) current[idx] = newRecord;
-  }
-  saveLocalData(current);
-
-  // Background sync to API (timeout 3.5s so student never waits or freezes)
+  // 1. Save to Cloud Firestore
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3500);
-
-    const res = await fetch('/api/students', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ...formData,
-        studentPhone: normalizedStudentPhone,
-        parentPhone: normalizedParentPhone,
-        email: normalizedEmail,
-      }),
-      signal: controller.signal,
-    });
-    clearTimeout(timeoutId);
-
-    const contentType = res.headers.get('content-type') || '';
-    if (res.ok && contentType.includes('application/json')) {
-      const json = await res.json();
-      if (json && json.success && json.data) {
-        return {
-          success: true,
-          data: json.data,
-          message: 'Gửi thông tin thành công!',
-        };
-      }
-    }
+    const docRef = doc(db, COLLECTION_NAME, studentId);
+    await setDoc(docRef, newRecord);
   } catch (err) {
-    // API failed or offline - local save already succeeded
+    console.error('Error saving directly to Firestore, saving to local cache:', err);
   }
+
+  // 2. Also save to local cache
+  const local = getLocalData();
+  local.unshift(newRecord);
+  saveLocalData(local);
 
   return {
     success: true,
@@ -270,83 +199,85 @@ export async function saveStudentSafe(
 }
 
 /**
- * Update an existing student record
+ * Update a student record in Cloud Firestore
  */
 export async function updateStudentSafe(
   id: string,
   updatedData: Partial<StudentSubmission>
 ): Promise<StudentSubmission> {
-  const list = getLocalData();
-  const index = list.findIndex((x) => x.id === id);
-  if (index === -1) {
-    throw new Error('Không tìm thấy học sinh để cập nhật');
-  }
-
-  const existing = list[index];
   const fullAddress = [
-    (updatedData.hamlet ?? existing.hamlet)?.trim(),
-    (updatedData.village ?? existing.village)?.trim(),
-    (updatedData.commune ?? existing.commune)?.trim(),
+    updatedData.hamlet?.trim(),
+    updatedData.village?.trim(),
+    updatedData.commune?.trim(),
   ]
     .filter(Boolean)
     .join(', ');
 
-  const merged: StudentSubmission = {
-    ...existing,
+  const merged = {
     ...updatedData,
-    studentPhone: updatedData.studentPhone !== undefined ? cleanPhoneVN(updatedData.studentPhone) : existing.studentPhone,
-    parentPhone: updatedData.parentPhone ? cleanPhoneVN(updatedData.parentPhone) : existing.parentPhone,
-    email: updatedData.email ? cleanEmailVN(updatedData.email) : existing.email,
-    fullAddress,
+    ...(fullAddress ? { fullAddress } : {}),
     updatedAt: new Date().toISOString(),
   };
 
-  list[index] = merged;
-  saveLocalData(list);
-
-  // Background sync
   try {
-    fetch(`/api/students/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(merged),
-    }).catch(() => {});
-  } catch (err) {}
+    const docRef = doc(db, COLLECTION_NAME, id);
+    await updateDoc(docRef, merged);
+  } catch (err) {
+    console.warn('Error updating in Firestore:', err);
+  }
 
-  return merged;
+  const local = getLocalData();
+  const idx = local.findIndex((x) => x.id === id);
+  if (idx !== -1) {
+    local[idx] = { ...local[idx], ...merged };
+    saveLocalData(local);
+  }
+
+  return { ...local[idx], ...merged } as StudentSubmission;
 }
 
 /**
- * Delete a student record
+ * Delete a student record from Cloud Firestore
  */
 export async function deleteStudentSafe(id: string): Promise<boolean> {
-  const list = getLocalData().filter((x) => x.id !== id);
-  saveLocalData(list);
-
   try {
-    fetch(`/api/students/${id}`, { method: 'DELETE' }).catch(() => {});
-  } catch (err) {}
+    const docRef = doc(db, COLLECTION_NAME, id);
+    await deleteDoc(docRef);
+  } catch (err) {
+    console.warn('Error deleting from Firestore:', err);
+  }
 
+  const local = getLocalData().filter((x) => x.id !== id);
+  saveLocalData(local);
   return true;
 }
 
 /**
- * Reset to initial sample data
+ * Seed initial sample students to Cloud Firestore
  */
 export async function resetSampleDataSafe(): Promise<StudentSubmission[]> {
-  saveLocalData(INITIAL_SAMPLE_STUDENTS);
   try {
-    fetch('/api/students/reset-sample', { method: 'POST' }).catch(() => {});
-  } catch (err) {}
+    for (const student of INITIAL_SAMPLE_STUDENTS) {
+      await setDoc(doc(db, COLLECTION_NAME, student.id), student);
+    }
+  } catch (err) {
+    console.warn('Error seeding sample data to Firestore:', err);
+  }
+  saveLocalData(INITIAL_SAMPLE_STUDENTS);
   return [...INITIAL_SAMPLE_STUDENTS];
 }
 
 /**
- * Clear all records
+ * Clear all records from Cloud Firestore (Start fresh class)
  */
 export async function clearAllDataSafe(): Promise<void> {
-  saveLocalData([]);
   try {
-    fetch('/api/students/clear-all', { method: 'POST' }).catch(() => {});
-  } catch (err) {}
+    const snap = await getDocs(collection(db, COLLECTION_NAME));
+    for (const docSnap of snap.docs) {
+      await deleteDoc(doc(db, COLLECTION_NAME, docSnap.id));
+    }
+  } catch (err) {
+    console.warn('Error clearing Firestore collection:', err);
+  }
+  saveLocalData([]);
 }

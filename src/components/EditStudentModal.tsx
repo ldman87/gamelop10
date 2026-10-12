@@ -173,7 +173,7 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
                   type="text"
                   value={village}
                   onChange={(e) => setVillage(e.target.value)}
-                  placeholder="Ví dụ: Thôn An Lạc"
+                  placeholder="Ví dụ: Thôn Xuân Hạ"
                   className="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
@@ -186,7 +186,7 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
                 type="text"
                 value={commune}
                 onChange={(e) => setCommune(e.target.value)}
-                placeholder="Ví dụ: Xã Tân Tiến (mới)"
+                placeholder="Ví dụ: Xã Lệ Thủy (mới)"
                 className="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 required
               />
