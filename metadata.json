@@ -1,5 +1,8 @@
 {
-  "name": "Toán 10: Chinh phục Mệnh đề & Tập hợp",
-  "description": "Ứng dụng luyện tập Toán 10 Chương 1 (Bộ Kết nối tri thức) với giao diện game sinh động, hỗ trợ LaTeX và đa dạng loại câu hỏi.",
-  "requestFramePermissions": []
+  "name": "THÔNG TIN HỌC LIỆU LMS LỚP 11A7",
+  "description": "Giáo viên chủ nhiệm tổng hợp.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }
