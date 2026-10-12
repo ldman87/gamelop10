@@ -20,6 +20,11 @@ import {
 } from 'lucide-react';
 import { StudentInput, StudentSubmission } from '../types';
 import { formatDateVN } from '../utils/excelExport';
+import {
+  saveStudentSafe,
+  cleanPhoneVN,
+  cleanEmailVN,
+} from '../services/studentStorage';
 
 interface StudentFormProps {
   onSubmitSuccess: (data: StudentSubmission) => void;
@@ -72,38 +77,97 @@ export const StudentForm: React.FC<StudentFormProps> = ({
     }
   };
 
+  // Comprehensive and forgiving Vietnamese validation
   const validate = (): string | null => {
-    if (!formData.fullName.trim()) return 'Vui lòng điền đầy đủ Họ và tên học sinh';
-    if (!formData.dob) return 'Vui lòng chọn Ngày tháng năm sinh';
-    if (!formData.commune.trim()) return 'Vui lòng điền Xã (mới) / Phường hiện tại';
-
-    // Check Gmail
-    const emailClean = formData.email.trim().toLowerCase();
-    if (!emailClean) return 'Vui lòng điền địa chỉ Gmail cá nhân';
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(emailClean)) {
-      return 'Địa chỉ Gmail không đúng định dạng (Ví dụ: hocsinh@gmail.com)';
+    if (!formData.fullName || !formData.fullName.trim()) {
+      return 'Vui lòng điền đầy đủ Họ và tên học sinh';
+    }
+    if (!formData.dob) {
+      return 'Vui lòng chọn Ngày tháng năm sinh';
+    }
+    if (!formData.commune || !formData.commune.trim()) {
+      return 'Vui lòng điền Xã (mới) / Phường hiện tại';
     }
 
-    // Check Student phone if provided and not checked
+    // Check Gmail
+    const cleanEmail = cleanEmailVN(formData.email);
+    if (!cleanEmail) {
+      return 'Vui lòng điền địa chỉ Gmail cá nhân';
+    }
+    if (!cleanEmail.includes('@') || !cleanEmail.includes('.')) {
+      return 'Địa chỉ Gmail chưa đúng (Ví dụ: tenhocsinh@gmail.com)';
+    }
+
+    // Check Student phone if not checked
     if (!formData.hasNoStudentPhone && formData.studentPhone.trim()) {
-      const cleanPhone = formData.studentPhone.trim().replace(/\s/g, '');
-      if (!/^(0[3|5|7|8|9])[0-9]{8}$/.test(cleanPhone)) {
-        return 'Số điện thoại cá nhân học sinh phải gồm 10 chữ số hợp lệ (bắt đầu bằng 03, 05, 07, 08, 09)';
+      const cleanSP = cleanPhoneVN(formData.studentPhone);
+      if (cleanSP.length < 9 || cleanSP.length > 11) {
+        return 'Số điện thoại học sinh chưa đúng định dạng (Ví dụ: 0912345678)';
       }
     }
 
     // Check Parent phone
-    const cleanParentPhone = formData.parentPhone.trim().replace(/\s/g, '');
-    if (!cleanParentPhone) return 'Vui lòng nhập Số điện thoại của Phụ huynh';
-    if (!/^(0[2|3|5|7|8|9])[0-9]{8,9}$/.test(cleanParentPhone)) {
-      return 'Số điện thoại Phụ huynh phải gồm 10 chữ số hợp lệ (ví dụ: 0987654321)';
+    const cleanPP = cleanPhoneVN(formData.parentPhone);
+    if (!cleanPP) {
+      return 'Vui lòng nhập Số điện thoại của Phụ huynh';
+    }
+    if (cleanPP.length < 9 || cleanPP.length > 11) {
+      return 'Số điện thoại Phụ huynh phải gồm 10 chữ số (Ví dụ: 0987654321)';
     }
 
     return null;
   };
 
-  // Step 1: Click "Xem lại thông tin"
+  // Core execution: save data safely
+  const executeSubmit = async () => {
+    const error = validate();
+    if (error) {
+      setErrorMessage(error);
+      window.scrollTo({ top: 120, behavior: 'smooth' });
+      return;
+    }
+
+    setErrorMessage(null);
+    setIsSubmitting(true);
+
+    try {
+      // Clean up values before saving
+      const payload: StudentInput = {
+        ...formData,
+        fullName: formData.fullName.trim(),
+        email: cleanEmailVN(formData.email),
+        studentPhone: formData.hasNoStudentPhone ? '' : cleanPhoneVN(formData.studentPhone),
+        parentPhone: cleanPhoneVN(formData.parentPhone),
+        commune: formData.commune.trim(),
+        hamlet: formData.hamlet.trim(),
+        village: formData.village.trim(),
+      };
+
+      const resData = await saveStudentSafe(payload);
+
+      if (!resData.success) {
+        throw new Error(resData.message || 'Không thể lưu thông tin. Vui lòng thử lại.');
+      }
+
+      setSubmittedStudent(resData.data);
+      setIsPreviewMode(false);
+      onSubmitSuccess(resData.data);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (err: any) {
+      console.error('Submit error:', err);
+      setErrorMessage(err.message || 'Đã có lỗi xảy ra khi gửi dữ liệu. Vui lòng thử lại!');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Direct submit from form
+  const handleDirectSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    executeSubmit();
+  };
+
+  // Proceed to preview screen
   const handleProceedToPreview = (e: React.FormEvent) => {
     e.preventDefault();
     const error = validate();
@@ -115,51 +179,14 @@ export const StudentForm: React.FC<StudentFormProps> = ({
 
     setErrorMessage(null);
     setIsPreviewMode(true);
-    window.scrollTo({ top: 100, behavior: 'smooth' });
+    window.scrollTo({ top: 80, behavior: 'smooth' });
   };
 
-  // Step 2: Back to edit form
+  // Back to edit
   const handleBackToEdit = () => {
     setIsPreviewMode(false);
-    window.scrollTo({ top: 100, behavior: 'smooth' });
-  };
-
-  // Step 3: Final submit from preview
-  const handleConfirmSubmit = async () => {
-    const error = validate();
-    if (error) {
-      setErrorMessage(error);
-      setIsPreviewMode(false);
-      return;
-    }
-
     setErrorMessage(null);
-    setIsSubmitting(true);
-
-    try {
-      const response = await fetch('/api/students', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-
-      const resData = await response.json();
-
-      if (!response.ok || !resData.success) {
-        throw new Error(resData.message || 'Không thể lưu thông tin. Vui lòng thử lại.');
-      }
-
-      setSubmittedStudent(resData.data);
-      setIsPreviewMode(false);
-      onSubmitSuccess(resData.data);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } catch (err: any) {
-      setErrorMessage(err.message || 'Đã có lỗi xảy ra khi gửi dữ liệu. Vui lòng thử lại!');
-    } finally {
-      setIsSubmitting(false);
-    }
+    window.scrollTo({ top: 120, behavior: 'smooth' });
   };
 
   const handleResetForAnother = () => {
@@ -180,6 +207,7 @@ export const StudentForm: React.FC<StudentFormProps> = ({
       notes: '',
     });
     setErrorMessage(null);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // ==========================================
@@ -229,14 +257,14 @@ export const StudentForm: React.FC<StudentFormProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <span className="text-slate-400 block text-xs">Gmail cá nhân:</span>
-              <span className="font-medium text-slate-800">{submittedStudent.email}</span>
+              <span className="font-medium text-slate-800 font-mono">{submittedStudent.email}</span>
             </div>
             <div>
               <span className="text-slate-400 block text-xs">SĐT cá nhân học sinh:</span>
-              <span className="font-medium text-slate-800">
+              <span className="font-medium text-slate-800 font-mono">
                 {submittedStudent.hasNoStudentPhone
                   ? 'Chưa có điện thoại riêng'
-                  : submittedStudent.studentPhone}
+                  : submittedStudent.studentPhone || '—'}
               </span>
             </div>
           </div>
@@ -252,7 +280,7 @@ export const StudentForm: React.FC<StudentFormProps> = ({
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
           <button
             onClick={handleResetForAnother}
-            className="w-full sm:w-auto px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition flex items-center justify-center gap-2 shadow-md shadow-indigo-600/20"
+            className="w-full sm:w-auto px-6 py-3 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white rounded-xl text-sm font-semibold transition flex items-center justify-center gap-2 shadow-md shadow-indigo-600/20 cursor-pointer"
           >
             <RotateCcw className="w-4 h-4" /> Điền phiếu cho học sinh khác
           </button>
@@ -277,7 +305,7 @@ export const StudentForm: React.FC<StudentFormProps> = ({
             Xem lại thông tin trước khi nộp
           </h2>
           <p className="mt-1 text-xs sm:text-sm text-indigo-100 max-w-xl">
-            Vui lòng kiểm tra kỹ các mục bên dưới. Nếu có sai sót, em có thể bấm nút <strong className="underline">Chỉnh sửa lại</strong> để cập nhật trước khi gửi cho Thầy/Cô.
+            Vui lòng kiểm tra kỹ các mục bên dưới. Em có thể bấm <strong className="underline font-bold">Chỉnh sửa lại</strong> để sửa, hoặc bấm <strong className="underline font-bold">Xác nhận gửi</strong> để hoàn tất.
           </p>
         </div>
 
@@ -285,7 +313,7 @@ export const StudentForm: React.FC<StudentFormProps> = ({
           <div className="mb-6 p-4 bg-rose-50 border border-rose-200 text-rose-800 rounded-2xl text-sm flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
             <div>
-              <p className="font-bold text-rose-900">Thông báo lỗi:</p>
+              <p className="font-bold text-rose-900">Thông báo:</p>
               <p className="text-xs sm:text-sm mt-0.5">{errorMessage}</p>
             </div>
           </div>
@@ -293,7 +321,7 @@ export const StudentForm: React.FC<StudentFormProps> = ({
 
         {/* Detailed Preview Card */}
         <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden divide-y divide-slate-100">
-          {/* Card Item 1: Họ tên & Ngày sinh */}
+          {/* Item 1: Họ tên & Ngày sinh */}
           <div className="p-6 sm:p-7">
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
@@ -302,7 +330,7 @@ export const StudentForm: React.FC<StudentFormProps> = ({
               <button
                 type="button"
                 onClick={handleBackToEdit}
-                className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-lg transition"
+                className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-lg transition cursor-pointer"
               >
                 <Pencil className="w-3.5 h-3.5" /> Sửa mục này
               </button>
@@ -321,7 +349,7 @@ export const StudentForm: React.FC<StudentFormProps> = ({
             </div>
           </div>
 
-          {/* Card Item 2: Địa chỉ cư trú */}
+          {/* Item 2: Địa chỉ cư trú */}
           <div className="p-6 sm:p-7">
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
@@ -330,7 +358,7 @@ export const StudentForm: React.FC<StudentFormProps> = ({
               <button
                 type="button"
                 onClick={handleBackToEdit}
-                className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-lg transition"
+                className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-lg transition cursor-pointer"
               >
                 <Pencil className="w-3.5 h-3.5" /> Sửa mục này
               </button>
@@ -351,13 +379,13 @@ export const StudentForm: React.FC<StudentFormProps> = ({
                 </div>
               </div>
               <div className="pt-2 border-t border-slate-200/60 text-xs">
-                <span className="text-slate-400 block font-medium">Địa chỉ đầy đủ sẽ lưu vào bảng:</span>
+                <span className="text-slate-400 block font-medium">Địa chỉ đầy đủ:</span>
                 <span className="font-semibold text-slate-800">{addressPreview}</span>
               </div>
             </div>
           </div>
 
-          {/* Card Item 3: Gmail & SĐT học sinh */}
+          {/* Item 3: Gmail & SĐT học sinh */}
           <div className="p-6 sm:p-7">
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
@@ -366,7 +394,7 @@ export const StudentForm: React.FC<StudentFormProps> = ({
               <button
                 type="button"
                 onClick={handleBackToEdit}
-                className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-lg transition"
+                className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-lg transition cursor-pointer"
               >
                 <Pencil className="w-3.5 h-3.5" /> Sửa mục này
               </button>
@@ -374,20 +402,20 @@ export const StudentForm: React.FC<StudentFormProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-200/70">
               <div>
                 <span className="text-xs text-slate-400 block font-medium">Gmail cá nhân:</span>
-                <span className="text-sm font-semibold text-slate-800 font-mono">{formData.email}</span>
+                <span className="text-sm font-semibold text-slate-800 font-mono">{cleanEmailVN(formData.email)}</span>
               </div>
               <div>
                 <span className="text-xs text-slate-400 block font-medium">SĐT cá nhân học sinh:</span>
                 <span className="text-sm font-semibold text-slate-800 font-mono">
                   {formData.hasNoStudentPhone
                     ? 'Chưa có số điện thoại riêng'
-                    : formData.studentPhone || '—'}
+                    : cleanPhoneVN(formData.studentPhone) || '—'}
                 </span>
               </div>
             </div>
           </div>
 
-          {/* Card Item 4: SĐT Phụ huynh */}
+          {/* Item 4: SĐT Phụ huynh */}
           <div className="p-6 sm:p-7">
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
@@ -396,7 +424,7 @@ export const StudentForm: React.FC<StudentFormProps> = ({
               <button
                 type="button"
                 onClick={handleBackToEdit}
-                className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-lg transition"
+                className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-lg transition cursor-pointer"
               >
                 <Pencil className="w-3.5 h-3.5" /> Sửa mục này
               </button>
@@ -408,7 +436,7 @@ export const StudentForm: React.FC<StudentFormProps> = ({
                     Người liên hệ: {formData.parentRelationship || 'Phụ huynh'} {formData.parentName ? `(${formData.parentName})` : ''}
                   </span>
                   <span className="text-lg font-black text-emerald-950 font-mono">
-                    {formData.parentPhone}
+                    {cleanPhoneVN(formData.parentPhone)}
                   </span>
                 </div>
                 <span className="inline-flex items-center gap-1 text-xs text-emerald-700 font-medium">
@@ -422,7 +450,7 @@ export const StudentForm: React.FC<StudentFormProps> = ({
           {formData.notes && (
             <div className="p-6 sm:p-7">
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">
-                Ghi chú thêm gửi Thầy/Cô:
+                Ghi chú thêm:
               </span>
               <p className="text-xs sm:text-sm text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-200 italic">
                 {formData.notes}
@@ -430,9 +458,8 @@ export const StudentForm: React.FC<StudentFormProps> = ({
             </div>
           )}
 
-          {/* Bottom Dual Action Buttons: Edit OR Confirm Submit */}
+          {/* Dual Action Buttons */}
           <div className="p-6 sm:p-7 bg-slate-50 flex flex-col-reverse sm:flex-row items-center justify-between gap-4">
-            {/* Edit Button */}
             <button
               type="button"
               onClick={handleBackToEdit}
@@ -442,11 +469,10 @@ export const StudentForm: React.FC<StudentFormProps> = ({
               <span>Chỉnh sửa lại (Edit)</span>
             </button>
 
-            {/* Confirm Submit Button */}
             <button
               type="button"
               disabled={isSubmitting}
-              onClick={handleConfirmSubmit}
+              onClick={executeSubmit}
               className="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 active:scale-[0.99] disabled:opacity-50 text-white rounded-2xl text-sm sm:text-base font-extrabold shadow-lg shadow-emerald-700/25 transition flex items-center justify-center gap-2.5 cursor-pointer"
             >
               {isSubmitting ? (
@@ -487,20 +513,20 @@ export const StudentForm: React.FC<StudentFormProps> = ({
           </h1>
 
           <p className="mt-2 text-blue-100 text-xs sm:text-sm leading-relaxed max-w-2xl">
-            Chào các em! Thầy/Cô chủ nhiệm tạo biểu mẫu này để cập nhật hồ sơ lớp học và thông tin liên lạc phục vụ công tác liên lạc trong năm học.
+            Chào các em! Thầy/Cô chủ nhiệm tạo biểu mẫu này để cập nhật hồ sơ lớp học và thông tin liên lạc. Các em điền đầy đủ và chính xác các mục dưới đây.
           </p>
 
           <div className="mt-4 pt-3 border-t border-white/20 flex flex-wrap items-center justify-between gap-3 text-xs text-blue-100">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Học sinh <strong>không cần đăng nhập</strong>. Có bước <strong>xem lại</strong> trước khi gửi.</span>
+              <span>Học sinh <strong>không cần đăng nhập</strong>. Điền xong bấm <strong>Gửi</strong>.</span>
             </div>
             <button
               type="button"
               onClick={onOpenTeacherModal}
-              className="text-xs bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-lg text-white font-medium transition backdrop-blur-sm"
+              className="text-xs bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-lg text-white font-medium transition backdrop-blur-sm cursor-pointer"
             >
-              Khu vực Giáo viên (ldman87@gmail.com) →
+              Khu vực Giáo viên →
             </button>
           </div>
         </div>
@@ -518,7 +544,8 @@ export const StudentForm: React.FC<StudentFormProps> = ({
           </div>
         )}
 
-        <form onSubmit={handleProceedToPreview} className="space-y-8">
+        {/* Use noValidate to avoid silent browser blocking */}
+        <form noValidate onSubmit={handleDirectSubmit} className="space-y-8">
           {/* Section 1: Thông tin học sinh & Ngày sinh */}
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-indigo-700 font-bold text-sm uppercase tracking-wider pb-2 border-b border-slate-100">
@@ -666,7 +693,7 @@ export const StudentForm: React.FC<StudentFormProps> = ({
                 <div className="relative">
                   <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
-                    type="email"
+                    type="text"
                     required
                     value={formData.email}
                     onChange={(e) =>
@@ -679,14 +706,14 @@ export const StudentForm: React.FC<StudentFormProps> = ({
                     <button
                       type="button"
                       onClick={handleQuickAppendGmail}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-lg transition"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-lg transition cursor-pointer"
                     >
                       + @gmail.com
                     </button>
                   )}
                 </div>
                 <p className="text-[11px] text-slate-400 mt-1 pl-1">
-                  Dùng để nhận tài liệu học tập, bài tập trực tuyến
+                  Nhận thông báo, tài liệu học tập
                 </p>
               </div>
 
@@ -707,7 +734,7 @@ export const StudentForm: React.FC<StudentFormProps> = ({
                           studentPhone: e.target.checked ? '' : prev.studentPhone,
                         }))
                       }
-                      className="rounded text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5"
+                      className="rounded text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5 cursor-pointer"
                     />
                     <span>Chưa có ĐT riêng</span>
                   </label>
@@ -716,7 +743,7 @@ export const StudentForm: React.FC<StudentFormProps> = ({
                 <div className="relative">
                   <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
-                    type="tel"
+                    type="text"
                     disabled={formData.hasNoStudentPhone}
                     value={formData.studentPhone}
                     onChange={(e) =>
@@ -737,7 +764,7 @@ export const StudentForm: React.FC<StudentFormProps> = ({
                 <p className="text-[11px] text-slate-400 mt-1 pl-1">
                   {formData.hasNoStudentPhone
                     ? 'Thầy/Cô sẽ liên hệ qua số điện thoại của Phụ huynh'
-                    : '10 chữ số (VD: 098..., 038..., 086...)'}
+                    : 'Nhập số điện thoại của em (nếu có)'}
                 </p>
               </div>
             </div>
@@ -767,7 +794,7 @@ export const StudentForm: React.FC<StudentFormProps> = ({
                         parentRelationship: e.target.value,
                       }))
                     }
-                    className="w-full px-3.5 py-3 bg-white rounded-xl border border-emerald-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 transition"
+                    className="w-full px-3.5 py-3 bg-white rounded-xl border border-emerald-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 transition cursor-pointer"
                   >
                     <option value="Bố">Bố</option>
                     <option value="Mẹ">Mẹ</option>
@@ -800,7 +827,7 @@ export const StudentForm: React.FC<StudentFormProps> = ({
                   <div className="relative">
                     <Phone className="w-4 h-4 text-emerald-600 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
-                      type="tel"
+                      type="text"
                       required
                       value={formData.parentPhone}
                       onChange={(e) =>
@@ -814,7 +841,7 @@ export const StudentForm: React.FC<StudentFormProps> = ({
               </div>
 
               <p className="text-[11px] text-emerald-800">
-                ⚠️ Bắt buộc điền đúng số điện thoại của Phụ huynh để Thầy/Cô liên hệ khi có việc khẩn cấp hoặc trao đổi học tập.
+                ⚠️ Bắt buộc điền đúng số điện thoại của Phụ huynh để Thầy/Cô liên hệ khi có việc cần thiết.
               </p>
             </div>
           </div>
@@ -835,17 +862,37 @@ export const StudentForm: React.FC<StudentFormProps> = ({
             />
           </div>
 
-          {/* Preview Button */}
-          <div className="pt-2">
+          {/* Dual Action Buttons: Direct Submit & Preview */}
+          <div className="pt-2 space-y-3">
             <button
               type="submit"
-              className="w-full py-4 px-6 bg-gradient-to-r from-indigo-600 to-blue-700 hover:from-indigo-700 hover:to-blue-800 active:scale-[0.99] text-white rounded-2xl text-base font-bold shadow-lg shadow-indigo-700/20 transition flex items-center justify-center gap-2 cursor-pointer"
+              disabled={isSubmitting}
+              className="w-full py-4 px-6 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 active:scale-[0.99] disabled:opacity-50 text-white rounded-2xl text-base font-extrabold shadow-lg shadow-emerald-700/25 transition flex items-center justify-center gap-2 cursor-pointer"
             >
-              <Eye className="w-5 h-5" />
-              <span>Xem lại & Kiểm tra thông tin trước khi nộp</span>
+              {isSubmitting ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <span>Đang gửi thông tin...</span>
+                </>
+              ) : (
+                <>
+                  <Send className="w-5 h-5" />
+                  <span>Gửi thông tin cho Thầy/Cô chủ nhiệm</span>
+                </>
+              )}
             </button>
-            <p className="text-center text-xs text-slate-400 mt-2.5">
-              Em sẽ được xem lại toàn bộ thông tin và có thể bấm <strong>Chỉnh sửa lại</strong> trước khi gửi chính thức.
+
+            <button
+              type="button"
+              onClick={handleProceedToPreview}
+              className="w-full py-3 px-6 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-2xl text-sm font-bold transition flex items-center justify-center gap-2 border border-indigo-200 cursor-pointer"
+            >
+              <Eye className="w-4 h-4" />
+              <span>Xem lại & kiểm tra thông tin trước (Tùy chọn)</span>
+            </button>
+
+            <p className="text-center text-xs text-slate-400 pt-1">
+              Thông tin sẽ được lưu an toàn và tổng hợp tự động vào danh sách lớp của Thầy/Cô.
             </p>
           </div>
         </form>

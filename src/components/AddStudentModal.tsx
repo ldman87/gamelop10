@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, UserPlus, AlertCircle } from 'lucide-react';
 import { StudentInput } from '../types';
+import { saveStudentSafe } from '../services/studentStorage';
 
 interface AddStudentModalProps {
   isOpen: boolean;
@@ -59,14 +60,9 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
     try {
       setIsSubmitting(true);
       setError(null);
-      const res = await fetch('/api/students', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.message || 'Lỗi thêm học sinh');
+      const res = await saveStudentSafe(formData);
+      if (!res.success) {
+        throw new Error(res.message || 'Lỗi thêm học sinh');
       }
       onSuccess();
       onClose();

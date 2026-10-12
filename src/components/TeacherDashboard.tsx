@@ -28,6 +28,13 @@ import { StudentSubmission } from '../types';
 import { exportToExcel, exportToCSV, formatDateVN, formatDateTimeVN } from '../utils/excelExport';
 import { StudentDetailModal } from './StudentDetailModal';
 import { EditStudentModal } from './EditStudentModal';
+import {
+  fetchStudentsSafe,
+  updateStudentSafe,
+  deleteStudentSafe,
+  resetSampleDataSafe,
+  clearAllDataSafe,
+} from '../services/studentStorage';
 
 interface TeacherDashboardProps {
   teacherEmail: string;
@@ -63,15 +70,14 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   const fetchData = async (silent = false) => {
     try {
       if (!silent) setIsRefreshing(true);
-      const res = await fetch('/api/students');
-      const data = await res.json();
-      if (data.success && Array.isArray(data.data)) {
-        if (silent && data.data.length > students.length && students.length > 0) {
-          const added = data.data.length - students.length;
+      const { data } = await fetchStudentsSafe();
+      if (Array.isArray(data)) {
+        if (silent && data.length > students.length && students.length > 0) {
+          const added = data.length - students.length;
           setNewSubmissionsAlert(`Có ${added} học sinh mới vừa gửi thông tin!`);
           setTimeout(() => setNewSubmissionsAlert(null), 5000);
         }
-        setStudents(data.data);
+        setStudents(data);
         setLastSyncTime(new Date());
       }
     } catch (err) {
@@ -146,29 +152,23 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   // Handle Edit Save
   const handleSaveEdit = async (updatedData: Partial<StudentSubmission>) => {
     if (!editingStudent) return;
-    const res = await fetch(`/api/students/${editingStudent.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updatedData),
-    });
-    const resData = await res.json();
-    if (!res.ok || !resData.success) {
-      throw new Error(resData.message || 'Không thể cập nhật hồ sơ');
+    try {
+      const updated = await updateStudentSafe(editingStudent.id, updatedData);
+      setStudents((prev) =>
+        prev.map((item) => (item.id === editingStudent.id ? updated : item))
+      );
+    } catch (err: any) {
+      console.error('Update error:', err);
+      throw err;
     }
-    // Update local state
-    setStudents((prev) =>
-      prev.map((item) => (item.id === editingStudent.id ? resData.data : item))
-    );
   };
 
   // Handle Delete
   const handleDeleteConfirm = async (id: string) => {
     try {
-      const res = await fetch(`/api/students/${id}`, { method: 'DELETE' });
-      if (res.ok) {
-        setStudents((prev) => prev.filter((item) => item.id !== id));
-        setDeletingId(null);
-      }
+      await deleteStudentSafe(id);
+      setStudents((prev) => prev.filter((item) => item.id !== id));
+      setDeletingId(null);
     } catch (err) {
       console.error('Delete error:', err);
     }
@@ -177,9 +177,10 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   // Handle Reset Sample
   const handleResetSample = async () => {
     try {
-      await fetch('/api/students/reset-sample', { method: 'POST' });
+      const resetList = await resetSampleDataSafe();
       setShowResetConfirm(false);
-      fetchData();
+      setStudents(resetList);
+      setLastSyncTime(new Date());
     } catch (err) {
       console.error('Reset error:', err);
     }
@@ -188,9 +189,10 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   // Handle Clear All
   const handleClearAll = async () => {
     try {
-      await fetch('/api/students/clear-all', { method: 'POST' });
+      await clearAllDataSafe();
       setShowResetConfirm(false);
       setStudents([]);
+      setLastSyncTime(new Date());
     } catch (err) {
       console.error('Clear all error:', err);
     }

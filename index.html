@@ -3,12 +3,57 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Thông tin Học sinh tham gia LMS - 11A7</title>
-    <meta name="description" content="Hệ thống thu thập thông tin học sinh" />
-    <meta property="og:description" content="Hệ thống thu thập thông tin học sinh." />
+    <title>Thông Tin Học Sinh Tham Gia LMS - 11A7</title>
+    <meta name="description" content="Giáo viên chủ nhiệm thu thập." />
+    <meta property="og:title" content="Thông Tin Học Sinh Tham Gia LMS - 11A7" />
+    <meta property="og:description" content="Thông Tin Học Sinh Tham Gia LMS - 11A7." />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="alternate icon" href="/favicon.ico" />
+
     <script>
+      // 1. Guard against third-party extension injection conflicts & dev WebSocket notices
+      window.addEventListener('error', function(event) {
+        if (
+          event &&
+          event.message &&
+          (event.message.indexOf('ethereum') !== -1 ||
+           event.message.indexOf('evmAsk') !== -1 ||
+           event.message.indexOf('WebSocket') !== -1 ||
+           event.message.indexOf('websocket') !== -1 ||
+           event.message.indexOf('Cannot set property fetch') !== -1)
+        ) {
+          event.stopImmediatePropagation();
+        }
+      });
+
+      window.addEventListener('unhandledrejection', function(event) {
+        if (
+          event &&
+          event.reason &&
+          typeof event.reason.message === 'string' &&
+          (event.reason.message.indexOf('WebSocket') !== -1 ||
+           event.reason.message.indexOf('websocket') !== -1)
+        ) {
+          event.preventDefault();
+        }
+      });
+
+      // 2. Pre-define window.ethereum with a configurable getter/setter so extensions won't throw 'Cannot redefine property'
+      try {
+        if (!('ethereum' in window)) {
+          var _eth = undefined;
+          Object.defineProperty(window, 'ethereum', {
+            get: function() { return _eth; },
+            set: function(val) { _eth = val; },
+            configurable: true,
+            enumerable: true
+          });
+        }
+      } catch (e) {}
+
+      // 3. Ensure window.fetch is writable and has a setter
       (function() {
         try {
           var currentFetch = window.fetch;
