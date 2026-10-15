@@ -6,7 +6,6 @@ service cloud.firestore {
       return data.fullName is string && data.fullName.size() > 0 && data.fullName.size() <= 100 &&
              data.dob is string && data.dob.size() <= 20 &&
              data.commune is string && data.commune.size() > 0 && data.commune.size() <= 100 &&
-             data.email is string && data.email.size() <= 100 &&
              data.parentPhone is string && data.parentPhone.size() >= 8 && data.parentPhone.size() <= 20;
     }
 

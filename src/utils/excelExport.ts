@@ -3,7 +3,6 @@ import { StudentSubmission } from '../types';
 
 export function formatDateVN(dateStr: string): string {
   if (!dateStr) return '';
-  // Check if YYYY-MM-DD
   const parts = dateStr.split('-');
   if (parts.length === 3) {
     return `${parts[2]}/${parts[1]}/${parts[0]}`;
@@ -31,7 +30,6 @@ export function exportToExcel(
   students: StudentSubmission[],
   teacherEmail = 'ldman87@gmail.com'
 ): void {
-  // Build rows array with title header
   const now = new Date();
   const exportTime = `${String(now.getDate()).padStart(2, '0')}/${String(
     now.getMonth() + 1
@@ -54,7 +52,7 @@ export function exportToExcel(
       'Thôn / Khu': s.village || '',
       'Xã (mới)': s.commune || '',
       'Địa chỉ đầy đủ': fullAddr,
-      'Gmail cá nhân': s.email || '',
+      'Nguyện vọng': s.aspiration || s.email || 'Chưa chọn',
       'SĐT học sinh': s.hasNoStudentPhone
         ? 'Chưa có SĐT'
         : s.studentPhone || '',
@@ -76,7 +74,7 @@ export function exportToExcel(
       'Thôn / Khu',
       'Xã (mới)',
       'Địa chỉ đầy đủ',
-      'Gmail cá nhân',
+      'Nguyện vọng',
       'SĐT học sinh',
       'SĐT Phụ huynh',
       'Mối quan hệ PH',
@@ -95,7 +93,7 @@ export function exportToExcel(
     { wch: 18 }, // Thôn / Khu
     { wch: 22 }, // Xã (mới)
     { wch: 38 }, // Địa chỉ đầy đủ
-    { wch: 28 }, // Gmail
+    { wch: 22 }, // Nguyện vọng
     { wch: 16 }, // SĐT HS
     { wch: 16 }, // SĐT PH
     { wch: 16 }, // Quan hệ
@@ -107,7 +105,7 @@ export function exportToExcel(
 
   // Create workbook
   const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'DS Học Sinh');
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Lớp Toán 12_4');
 
   // Generate file name with date
   const dateSuffix = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(
@@ -117,7 +115,7 @@ export function exportToExcel(
     2,
     '0'
   )}${String(now.getMinutes()).padStart(2, '0')}`;
-  const filename = `Danh_Sach_Hoc_Sinh_Lop_Chu_Nhiem_${dateSuffix}.xlsx`;
+  const filename = `Danh_Sach_Lop_Toan_12_4_Thay_Man_${dateSuffix}.xlsx`;
 
   // Write file
   XLSX.writeFile(workbook, filename);
@@ -134,7 +132,7 @@ export function exportToCSV(
     'Thôn/Khu',
     'Xã (mới)',
     'Địa chỉ đầy đủ',
-    'Gmail cá nhân',
+    'Nguyện vọng',
     'SĐT học sinh',
     'SĐT Phụ huynh',
     'Mối quan hệ PH',
@@ -155,7 +153,7 @@ export function exportToCSV(
       `"${(s.village || '').replace(/"/g, '""')}"`,
       `"${(s.commune || '').replace(/"/g, '""')}"`,
       `"${(fullAddr || '').replace(/"/g, '""')}"`,
-      `"${(s.email || '').replace(/"/g, '""')}"`,
+      `"${(s.aspiration || s.email || 'Chưa chọn').replace(/"/g, '""')}"`,
       `"${s.hasNoStudentPhone ? 'Chưa có SĐT' : s.studentPhone || ''}"`,
       `"${(s.parentPhone || '').replace(/"/g, '""')}"`,
       `"${(s.parentRelationship || 'Phụ huynh').replace(/"/g, '""')}"`,
@@ -172,7 +170,7 @@ export function exportToCSV(
   const a = document.createElement('a');
   a.href = url;
   const now = new Date();
-  a.download = `Danh_Sach_Hoc_Sinh_${now.getFullYear()}${String(
+  a.download = `Danh_Sach_Lop_Toan_12_4_Thay_Man_${now.getFullYear()}${String(
     now.getMonth() + 1
   ).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}.csv`;
   document.body.appendChild(a);

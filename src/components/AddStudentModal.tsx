@@ -20,7 +20,7 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
     hamlet: '',
     village: '',
     commune: '',
-    email: '',
+    aspiration: 'Đại học',
     studentPhone: '',
     hasNoStudentPhone: false,
     parentPhone: '',
@@ -48,8 +48,8 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
       setError('Vui lòng nhập Xã (mới)');
       return;
     }
-    if (!formData.email.trim()) {
-      setError('Vui lòng nhập địa chỉ Gmail cá nhân');
+    if (!formData.aspiration) {
+      setError('Vui lòng chọn Nguyện vọng (Đại học hoặc Tốt nghiệp)');
       return;
     }
     if (!formData.parentPhone.trim()) {
@@ -79,11 +79,11 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
         <div className="bg-indigo-600 p-5 text-white flex justify-between items-center shrink-0">
           <div className="flex items-center gap-2">
             <UserPlus className="w-5 h-5" />
-            <h3 className="font-bold text-lg">Thêm học sinh mới vào danh sách</h3>
+            <h3 className="font-bold text-lg">Thêm học sinh mới - Lớp Toán 12_4</h3>
           </div>
           <button
             onClick={onClose}
-            className="text-white/80 hover:text-white p-1.5 rounded-lg transition"
+            className="text-white/80 hover:text-white p-1.5 rounded-lg transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -165,19 +165,37 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Gmail cá nhân <span className="text-rose-500">*</span>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+              Nguyện vọng thi <span className="text-rose-500">*</span>
             </label>
-            <input
-              type="email"
-              required
-              value={formData.email}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, email: e.target.value }))
-              }
-              placeholder="hocsinh@gmail.com"
-              className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() =>
+                  setFormData((prev) => ({ ...prev, aspiration: 'Đại học' }))
+                }
+                className={`py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                  formData.aspiration === 'Đại học'
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                <span>🎯 Xét Đại học</span>
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  setFormData((prev) => ({ ...prev, aspiration: 'Tốt nghiệp' }))
+                }
+                className={`py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                  formData.aspiration === 'Tốt nghiệp'
+                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                <span>🎓 Xét Tốt nghiệp</span>
+              </button>
+            </div>
           </div>
 
           <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/80 space-y-2">

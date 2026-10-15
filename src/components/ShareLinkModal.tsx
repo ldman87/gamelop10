@@ -91,10 +91,10 @@ export const ShareLinkModal: React.FC<ShareLinkModalProps> = ({
 
           <div className="bg-amber-50 border border-amber-200/70 rounded-xl p-3.5 text-xs text-amber-800 space-y-1">
             <p className="font-semibold flex items-center gap-1 text-amber-900">
-              💡 Gợi ý tin nhắn mẫu gửi nhóm Zalo lớp:
+              💡 Gợi ý tin nhắn mẫu gửi nhóm Zalo lớp Toán 12_4:
             </p>
             <p className="italic text-slate-700">
-              "Kính gửi Quý Phụ huynh và các em học sinh, Thầy/Cô chủ nhiệm xin thông báo các em truy cập đường link sau để cập nhật thông tin năm học mới: {currentUrl} (Không cần đăng nhập, điền trực tiếp)."
+              "Kính gửi Quý Phụ huynh và các em học sinh lớp Toán 12_4, Thầy Mẫn xin thông báo các em truy cập đường link sau để cập nhật thông tin và nguyện vọng thi (Đại học / Tốt nghiệp): {currentUrl} (Không cần đăng nhập, điền trực tiếp gửi cho Thầy Mẫn)."
             </p>
           </div>
         </div>

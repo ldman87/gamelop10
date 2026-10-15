@@ -6,7 +6,8 @@ export interface StudentSubmission {
   village: string; // Thôn / Khu
   commune: string; // Xã (mới)
   fullAddress: string;
-  email: string;
+  aspiration: string; // 'Đại học' | 'Tốt nghiệp'
+  email?: string;
   studentPhone: string;
   hasNoStudentPhone?: boolean;
   parentPhone: string;
@@ -23,7 +24,7 @@ export interface StudentInput {
   hamlet: string;
   village: string;
   commune: string;
-  email: string;
+  aspiration: string; // 'Đại học' | 'Tốt nghiệp'
   studentPhone: string;
   hasNoStudentPhone: boolean;
   parentPhone: string;

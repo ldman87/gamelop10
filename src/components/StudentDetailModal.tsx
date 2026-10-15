@@ -1,16 +1,15 @@
-import React from 'react';
 import {
   X,
   User,
   Calendar,
   MapPin,
-  Mail,
   Phone,
   Users,
   FileText,
   Clock,
   PhoneCall,
-  Send,
+  Target,
+  Award,
 } from 'lucide-react';
 import { StudentSubmission } from '../types';
 import { formatDateVN, formatDateTimeVN } from '../utils/excelExport';
@@ -35,7 +34,7 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
         <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-5 text-white flex justify-between items-start shrink-0">
           <div>
             <span className="inline-block px-2.5 py-0.5 bg-white/20 text-white rounded-full text-xs font-medium mb-1 backdrop-blur-sm">
-              Hồ sơ học sinh
+              Hồ sơ học sinh • Lớp Toán 12_4
             </span>
             <h3 className="font-bold text-xl leading-tight">{student.fullName}</h3>
             <p className="text-xs text-blue-100 flex items-center gap-1.5 mt-1">
@@ -44,7 +43,7 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="text-white/80 hover:text-white hover:bg-white/10 p-1.5 rounded-lg transition"
+            className="text-white/80 hover:text-white hover:bg-white/10 p-1.5 rounded-lg transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -77,27 +76,24 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
             </div>
           </div>
 
-          {/* Section: Liên lạc */}
+          {/* Section: Nguyện vọng & Liên lạc */}
           <div className="pt-4 space-y-3">
             <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-              <Phone className="w-4 h-4 text-emerald-600" /> Thông tin liên lạc
+              <Target className="w-4 h-4 text-indigo-600" /> Nguyện vọng thi & Thông tin liên lạc
             </h4>
 
             <div className="space-y-2">
-              <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200/70">
+              {/* Nguyện vọng */}
+              <div className="flex items-center justify-between p-3 bg-blue-50/70 rounded-xl border border-blue-200/70">
                 <div className="flex items-center gap-2.5">
-                  <Mail className="w-4 h-4 text-slate-500" />
+                  <Target className="w-4 h-4 text-blue-600" />
                   <div>
-                    <span className="text-[11px] text-slate-400 block">Gmail cá nhân:</span>
-                    <span className="text-sm font-medium text-slate-800">{student.email}</span>
+                    <span className="text-[11px] text-blue-500 block font-medium">Nguyện vọng của học sinh:</span>
+                    <span className="text-sm font-bold text-blue-900">
+                      {(student.aspiration || '').includes('Đại học') ? '🎯 Xét tuyển Đại học / Cao đẳng' : '🎓 Xét Tốt nghiệp THPT'}
+                    </span>
                   </div>
                 </div>
-                <a
-                  href={`mailto:${student.email}`}
-                  className="px-2.5 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg text-xs font-medium flex items-center gap-1 transition"
-                >
-                  <Send className="w-3 h-3" /> Gửi thư
-                </a>
               </div>
 
               <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200/70">

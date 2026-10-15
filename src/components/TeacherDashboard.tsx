@@ -56,6 +56,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   const [lastSyncTime, setLastSyncTime] = useState<Date>(new Date());
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCommune, setSelectedCommune] = useState('ALL');
+  const [selectedAspiration, setSelectedAspiration] = useState('ALL');
   const [sortBy, setSortBy] = useState<'latest' | 'name-asc' | 'dob-asc'>('latest');
 
   // Modals state
@@ -72,17 +73,8 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
     try {
       if (!silent) setIsRefreshing(true);
       const { data } = await fetchStudentsSafe();
-      if (Array.isArray(data)) {
-        if (silent && data.length > students.length && students.length > 0) {
-          const added = data.length - students.length;
-          setNewSubmissionsAlert(`Có ${added} học sinh mới vừa gửi thông tin!`);
-          setTimeout(() => setNewSubmissionsAlert(null), 5000);
-        }
-        setStudents(data);
-        setLastSyncTime(new Date());
-      }
-    } catch (err) {
-      console.error('Error fetching students:', err);
+      setStudents(data);
+      setLastSyncTime(new Date());
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -116,6 +108,12 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   const filteredStudents = useMemo(() => {
     return students
       .filter((s) => {
+        // Aspiration filter
+        if (selectedAspiration !== 'ALL') {
+          const asp = s.aspiration || (s as any).email || '';
+          if (!asp.includes(selectedAspiration)) return false;
+        }
+
         // Commune filter
         if (selectedCommune !== 'ALL' && s.commune.trim() !== selectedCommune) {
           return false;
@@ -126,7 +124,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
         const q = searchQuery.toLowerCase().trim();
         return (
           s.fullName.toLowerCase().includes(q) ||
-          s.email.toLowerCase().includes(q) ||
+          (s.aspiration && s.aspiration.toLowerCase().includes(q)) ||
           (s.studentPhone && s.studentPhone.includes(q)) ||
           (s.parentPhone && s.parentPhone.includes(q)) ||
           (s.fullAddress && s.fullAddress.toLowerCase().includes(q)) ||
@@ -147,11 +145,13 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
         }
         return 0;
       });
-  }, [students, searchQuery, selectedCommune, sortBy]);
+  }, [students, searchQuery, selectedCommune, selectedAspiration, sortBy]);
 
   // Stats
-  const todayStr = new Date().toISOString().slice(0, 10);
-  const todayCount = students.filter((s) => s.createdAt?.startsWith(todayStr)).length;
+  const todayStr = new Date().toISOString().split('T')[0];
+  const todayCount = students.filter((s) => (s.createdAt || '').startsWith(todayStr)).length;
+  const daiHocCount = students.filter((s) => (s.aspiration || (s as any).email || '').includes('Đại học')).length;
+  const totNghiepCount = students.filter((s) => (s.aspiration || (s as any).email || '').includes('Tốt nghiệp')).length;
   const withStudentPhoneCount = students.filter((s) => !s.hasNoStudentPhone && !!s.studentPhone).length;
 
   // Handle Edit Save
@@ -227,13 +227,13 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-800 tracking-tight">
-            Quản Lý & Tổng Hợp Học Sinh
+            Quản Lý & Tổng Hợp Học Sinh - Lớp Toán 12_4
           </h1>
 
           <p className="text-sm text-slate-500 mt-1 flex items-center gap-2">
-            <span>Giáo viên chủ nhiệm:</span>
-            <strong className="text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-lg">
-              {teacherEmail}
+            <span>Giáo viên phụ trách:</span>
+            <strong className="text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-lg font-bold">
+              Thầy Mẫn ({teacherEmail})
             </strong>
           </p>
         </div>
@@ -245,7 +245,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
             onClick={() => exportToExcel(filteredStudents, teacherEmail)}
             disabled={students.length === 0}
             className="flex-1 sm:flex-initial px-5 py-3 bg-[#107c41] hover:bg-[#0c6b37] active:bg-[#0a572d] disabled:opacity-50 text-white rounded-2xl font-bold text-sm shadow-md shadow-emerald-800/20 transition flex items-center justify-center gap-2.5 group cursor-pointer"
-            title="Tải toàn bộ danh sách định dạng Excel .xlsx chuẩn cho GVCN"
+            title="Tải toàn bộ danh sách lớp Toán 12_4 định dạng Excel .xlsx cho Thầy Mẫn"
           >
             <FileSpreadsheet className="w-5 h-5 text-emerald-200 group-hover:scale-110 transition" />
             <span>Tải file Excel (.xlsx)</span>
@@ -286,7 +286,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           <button
             onClick={onLogout}
             className="p-3 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-2xl transition"
-            title="Đăng xuất giáo viên"
+            title="Đăng xuất Thầy Mẫn"
           >
             <LogOut className="w-4 h-4" />
           </button>
@@ -310,24 +310,39 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           </div>
         </div>
 
-        {/* Today Submissions */}
+        {/* Dai Hoc Count */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
-            <Calendar className="w-6 h-6" />
+          <div className="w-12 h-12 rounded-2xl bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
+            <CheckCircle className="w-6 h-6 text-blue-600" />
           </div>
           <div>
             <span className="text-xs font-semibold text-slate-400 block uppercase">
-              Nộp hôm nay
+              Xét Đại học
+            </span>
+            <span className="text-2xl font-black text-blue-700">
+              {daiHocCount} <span className="text-xs font-normal text-slate-400">em</span>
+            </span>
+          </div>
+        </div>
+
+        {/* Tot Nghiep Count */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+            <CheckCircle className="w-6 h-6 text-emerald-600" />
+          </div>
+          <div>
+            <span className="text-xs font-semibold text-slate-400 block uppercase">
+              Xét Tốt nghiệp
             </span>
             <span className="text-2xl font-black text-emerald-700">
-              {todayCount} <span className="text-xs font-normal text-slate-400">em</span>
+              {totNghiepCount} <span className="text-xs font-normal text-slate-400">em</span>
             </span>
           </div>
         </div>
 
         {/* Student Phone Count */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
+          <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
             <Smartphone className="w-6 h-6" />
           </div>
           <div>
@@ -336,21 +351,6 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
             </span>
             <span className="text-2xl font-black text-slate-800">
               {withStudentPhoneCount} / {students.length}
-            </span>
-          </div>
-        </div>
-
-        {/* Communes Count */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
-            <MapPin className="w-6 h-6" />
-          </div>
-          <div>
-            <span className="text-xs font-semibold text-slate-400 block uppercase">
-              Địa bàn Xã (mới)
-            </span>
-            <span className="text-2xl font-black text-amber-800">
-              {communesList.length} <span className="text-xs font-normal text-slate-400">xã</span>
             </span>
           </div>
         </div>
@@ -366,15 +366,29 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Tìm kiếm theo Tên học sinh, SĐT, Gmail, Thôn, Xóm, Xã mới..."
+              placeholder="Tìm kiếm theo Tên học sinh, SĐT, Nguyện vọng, Thôn, Xóm, Xã mới..."
               className="w-full pl-10 pr-4 py-2.5 bg-slate-50 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
             />
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {/* Filter by Commune */}
+            {/* Filter by Aspiration */}
             <div className="flex items-center gap-1.5 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200">
               <Filter className="w-3.5 h-3.5 text-slate-400" />
+              <select
+                value={selectedAspiration}
+                onChange={(e) => setSelectedAspiration(e.target.value)}
+                className="bg-transparent text-xs font-semibold text-slate-700 focus:outline-none cursor-pointer"
+              >
+                <option value="ALL">Tất cả Nguyện vọng</option>
+                <option value="Đại học">🎯 Đại học</option>
+                <option value="Tốt nghiệp">🎓 Tốt nghiệp</option>
+              </select>
+            </div>
+
+            {/* Filter by Commune */}
+            <div className="flex items-center gap-1.5 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200">
+              <MapPin className="w-3.5 h-3.5 text-slate-400" />
               <select
                 value={selectedCommune}
                 onChange={(e) => setSelectedCommune(e.target.value)}
@@ -406,7 +420,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
             {/* Add student manually */}
             <button
               onClick={onOpenAddModal}
-              className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold transition flex items-center gap-1.5 shadow-sm"
+              className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold transition flex items-center gap-1.5 shadow-sm cursor-pointer"
             >
               <Plus className="w-4 h-4" /> Thêm học sinh
             </button>
@@ -453,7 +467,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
             </p>
             <p className="text-xs text-slate-400 max-w-sm mx-auto">
               {students.length === 0
-                ? 'Hãy chia sẻ đường link hoặc mã QR cho học sinh để các em bắt đầu điền thông tin.'
+                ? 'Hãy chia sẻ đường link hoặc mã QR cho học sinh lớp Toán 12_4 để các em bắt đầu điền thông tin.'
                 : 'Thử xóa từ khóa tìm kiếm hoặc chọn lại địa bàn Xã.'}
             </p>
             {students.length === 0 && (
@@ -476,7 +490,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                   <th className="py-3.5 px-4 min-w-[220px]">
                     Địa chỉ (Đội/Xóm • Thôn/Khu • Xã mới)
                   </th>
-                  <th className="py-3.5 px-4 min-w-[190px]">Gmail cá nhân</th>
+                  <th className="py-3.5 px-4 min-w-[140px]">Nguyện vọng</th>
                   <th className="py-3.5 px-4 min-w-[130px]">SĐT học sinh</th>
                   <th className="py-3.5 px-4 min-w-[140px]">SĐT Phụ huynh</th>
                   <th className="py-3.5 px-4 min-w-[120px] text-center">Nộp lúc</th>
@@ -521,14 +535,15 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                       </div>
                     </td>
 
-                    {/* Gmail */}
-                    <td className="py-3.5 px-4 text-xs font-mono">
-                      <a
-                        href={`mailto:${student.email}`}
-                        className="text-slate-600 hover:text-indigo-600 hover:underline"
-                      >
-                        {student.email}
-                      </a>
+                    {/* Nguyện vọng */}
+                    <td className="py-3.5 px-4 text-xs">
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${
+                        (student.aspiration || '').includes('Đại học')
+                          ? 'bg-blue-100 text-blue-800'
+                          : 'bg-emerald-100 text-emerald-800'
+                      }`}>
+                        {(student.aspiration || '').includes('Đại học') ? '🎯 Đại học' : '🎓 Tốt nghiệp'}
+                      </span>
                     </td>
 
                     {/* SĐT cá nhân */}

@@ -6,32 +6,98 @@ import {
   deleteDoc,
   updateDoc,
   onSnapshot,
-  query,
-  orderBy,
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { StudentInput, StudentSubmission } from '../types';
 
-const STORAGE_KEY = 'lop_chunhiem_students_data_v1';
+const STORAGE_KEY = 'lop_toan_12_4_thay_man_v2';
 const COLLECTION_NAME = 'students';
 
 export const INITIAL_SAMPLE_STUDENTS: StudentSubmission[] = [
   {
     id: 'hs-1',
     fullName: 'Nguyễn Minh Tuấn',
-    dob: '2009-03-15',
+    dob: '2007-03-15',
     hamlet: 'Đội 3',
     village: 'Thôn An Lạc',
     commune: 'Xã Tân Tiến (mới)',
     fullAddress: 'Đội 3, Thôn An Lạc, Xã Tân Tiến (mới)',
-    email: 'minhtuan.nguyen2009@gmail.com',
+    aspiration: 'Đại học',
     studentPhone: '0912345678',
     hasNoStudentPhone: false,
     parentPhone: '0987654321',
     parentRelationship: 'Bố',
     parentName: 'Nguyễn Văn Hùng',
-    notes: 'Học sinh giỏi Toán năm lớp 9',
+    notes: 'Mục tiêu khối A00 (Toán - Lý - Hóa)',
     createdAt: new Date(Date.now() - 3600 * 1000 * 24 * 2).toISOString(),
+  },
+  {
+    id: 'hs-2',
+    fullName: 'Trần Thị Mai Linh',
+    dob: '2007-08-22',
+    hamlet: 'Xóm 5',
+    village: 'Khu 2',
+    commune: 'Xã Đại Đồng (mới)',
+    fullAddress: 'Xóm 5, Khu 2, Xã Đại Đồng (mới)',
+    aspiration: 'Đại học',
+    studentPhone: '0834567890',
+    hasNoStudentPhone: false,
+    parentPhone: '0978123456',
+    parentRelationship: 'Mẹ',
+    parentName: 'Phạm Thị Lan',
+    notes: 'Mục tiêu khối D01 (Toán - Văn - Anh)',
+    createdAt: new Date(Date.now() - 3600 * 1000 * 18).toISOString(),
+  },
+  {
+    id: 'hs-3',
+    fullName: 'Lê Hoàng Nam',
+    dob: '2007-11-05',
+    hamlet: 'Đội 1',
+    village: 'Thôn Thượng',
+    commune: 'Xã Tân Tiến (mới)',
+    fullAddress: 'Đội 1, Thôn Thượng, Xã Tân Tiến (mới)',
+    aspiration: 'Tốt nghiệp',
+    studentPhone: '',
+    hasNoStudentPhone: true,
+    parentPhone: '0903456789',
+    parentRelationship: 'Bố',
+    parentName: 'Lê Quang Hải',
+    notes: 'Chưa có điện thoại riêng, liên hệ qua bố',
+    createdAt: new Date(Date.now() - 3600 * 1000 * 5).toISOString(),
+  },
+  {
+    id: 'hs-4',
+    fullName: 'Phạm Quỳnh Anh',
+    dob: '2007-01-30',
+    hamlet: 'Xóm Chùa',
+    village: 'Thôn Đông',
+    commune: 'Xã Hưng Thịnh (mới)',
+    fullAddress: 'Xóm Chùa, Thôn Đông, Xã Hưng Thịnh (mới)',
+    aspiration: 'Đại học',
+    studentPhone: '0945678912',
+    hasNoStudentPhone: false,
+    parentPhone: '0912987654',
+    parentRelationship: 'Mẹ',
+    parentName: 'Đỗ Hồng Thắm',
+    notes: 'Mục tiêu Đại học Kinh tế Quốc dân',
+    createdAt: new Date(Date.now() - 3600 * 1000 * 2).toISOString(),
+  },
+  {
+    id: 'hs-5',
+    fullName: 'Vũ Đức Thành',
+    dob: '2007-06-18',
+    hamlet: 'Đội 6',
+    village: 'Thôn Nam',
+    commune: 'Xã Đại Đồng (mới)',
+    fullAddress: 'Đội 6, Thôn Nam, Xã Đại Đồng (mới)',
+    aspiration: 'Đại học',
+    studentPhone: '0867890123',
+    hasNoStudentPhone: false,
+    parentPhone: '0936123456',
+    parentRelationship: 'Bố',
+    parentName: 'Vũ Đình Trọng',
+    notes: 'Mục tiêu Bách Khoa',
+    createdAt: new Date(Date.now() - 3600 * 1000 * 1).toISOString(),
   },
 ];
 
@@ -43,15 +109,6 @@ export function cleanPhoneVN(phone: string): string {
     cleaned = '0' + cleaned.slice(3);
   } else if (cleaned.startsWith('84') && cleaned.length >= 11) {
     cleaned = '0' + cleaned.slice(2);
-  }
-  return cleaned;
-}
-
-// Normalize Gmail
-export function cleanEmailVN(email: string): string {
-  let cleaned = (email || '').trim().toLowerCase();
-  if (cleaned && !cleaned.includes('@')) {
-    cleaned = `${cleaned}@gmail.com`;
   }
   return cleaned;
 }
@@ -90,12 +147,14 @@ export async function fetchStudentsSafe(): Promise<{
     const list: StudentSubmission[] = [];
     snap.forEach((docSnap) => {
       const d = docSnap.data() as StudentSubmission;
-      list.push({ ...d, id: docSnap.id });
+      list.push({
+        ...d,
+        id: docSnap.id,
+        aspiration: d.aspiration || (d as any).email || 'Đại học',
+      });
     });
 
     list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
-    // Update local cache
     saveLocalData(list);
     return { data: list, isCloudConnected: true };
   } catch (err) {
@@ -119,7 +178,11 @@ export function subscribeStudentsRealtime(
         const list: StudentSubmission[] = [];
         snapshot.forEach((docSnap) => {
           const d = docSnap.data() as StudentSubmission;
-          list.push({ ...d, id: docSnap.id });
+          list.push({
+            ...d,
+            id: docSnap.id,
+            aspiration: d.aspiration || (d as any).email || 'Đại học',
+          });
         });
         list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         saveLocalData(list);
@@ -156,7 +219,6 @@ export async function saveStudentSafe(
     ? ''
     : cleanPhoneVN(formData.studentPhone);
   const normalizedParentPhone = cleanPhoneVN(formData.parentPhone);
-  const normalizedEmail = cleanEmailVN(formData.email);
 
   const studentId = 'hs-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6);
 
@@ -168,7 +230,7 @@ export async function saveStudentSafe(
     village: formData.village ? formData.village.trim() : '',
     commune: formData.commune.trim(),
     fullAddress,
-    email: normalizedEmail,
+    aspiration: formData.aspiration || 'Đại học',
     studentPhone: normalizedStudentPhone,
     hasNoStudentPhone: !!formData.hasNoStudentPhone,
     parentPhone: normalizedParentPhone,
@@ -194,7 +256,7 @@ export async function saveStudentSafe(
   return {
     success: true,
     data: newRecord,
-    message: 'Gửi thông tin thành công!',
+    message: 'Gửi thông tin cho Thầy Mẫn thành công!',
   };
 }
 
@@ -216,6 +278,7 @@ export async function updateStudentSafe(
   const merged = {
     ...updatedData,
     ...(fullAddress ? { fullAddress } : {}),
+    aspiration: updatedData.aspiration || 'Đại học',
     updatedAt: new Date().toISOString(),
   };
 

@@ -2,7 +2,7 @@
   "entities": {
     "Student": {
       "title": "Student",
-      "description": "Thông tin học sinh lớp chủ nhiệm",
+      "description": "Thông tin học sinh lớp Toán 12_4 của thầy Mẫn",
       "type": "object",
       "properties": {
         "fullName": {
@@ -37,9 +37,14 @@
           "description": "Địa chỉ đầy đủ",
           "maxLength": 255
         },
+        "aspiration": {
+          "type": "string",
+          "description": "Nguyện vọng (Đại học / Tốt nghiệp)",
+          "maxLength": 100
+        },
         "email": {
           "type": "string",
-          "description": "Gmail cá nhân",
+          "description": "Email cũ (nếu có)",
           "maxLength": 100
         },
         "studentPhone": {
@@ -83,7 +88,7 @@
           "maxLength": 50
         }
       },
-      "required": ["fullName", "dob", "commune", "email", "parentPhone"]
+      "required": ["fullName", "dob", "commune", "parentPhone"]
     }
   },
   "firestore": {
@@ -91,7 +96,7 @@
       "schema": {
         "$ref": "#/entities/Student"
       },
-      "description": "Danh sách học sinh lớp chủ nhiệm nộp thông tin"
+      "description": "Danh sách học sinh lớp Toán 12_4 của thầy Mẫn nộp thông tin"
     }
   }
 }

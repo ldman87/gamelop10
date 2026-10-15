@@ -28,7 +28,7 @@ export const TeacherLoginModal: React.FC<TeacherLoginModalProps> = ({
 
     const cleanEmail = email.trim().toLowerCase();
     if (cleanEmail !== AUTHORIZED_TEACHER_EMAIL.toLowerCase()) {
-      setError(`Email này không phải tài khoản Giáo viên chủ nhiệm được cấp quyền.`);
+      setError(`Email này không phải tài khoản của Thầy Mẫn được cấp quyền.`);
       return;
     }
 
@@ -57,8 +57,8 @@ export const TeacherLoginModal: React.FC<TeacherLoginModalProps> = ({
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-lg leading-tight">Đăng nhập Giáo viên</h3>
-              <p className="text-xs text-emerald-100">Khu vực quản lý dành cho Giáo viên chủ nhiệm</p>
+              <h3 className="font-bold text-lg leading-tight">Khu vực Thầy Mẫn</h3>
+              <p className="text-xs text-emerald-100">Quản lý & kết xuất dữ liệu Lớp Toán 12_4</p>
             </div>
           </div>
           <button
@@ -73,9 +73,9 @@ export const TeacherLoginModal: React.FC<TeacherLoginModalProps> = ({
           <div className="bg-emerald-50 border border-emerald-200/80 rounded-xl p-3.5 text-xs text-emerald-800 flex items-start gap-2.5">
             <Lock className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
             <div>
-              <p className="font-semibold text-emerald-950">Bảo mật thông tin học sinh:</p>
+              <p className="font-semibold text-emerald-950">Bảo mật thông tin lớp Toán 12_4:</p>
               <p className="mt-0.5">
-                Vui lòng nhập tài khoản và mật khẩu của Giáo viên chủ nhiệm để xem danh sách và tải file Excel.
+                Vui lòng nhập mật khẩu của Thầy Mẫn để truy cập bảng tổng hợp và tải file Excel.
               </p>
             </div>
           </div>
@@ -89,7 +89,7 @@ export const TeacherLoginModal: React.FC<TeacherLoginModalProps> = ({
 
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-              Gmail Giáo viên <span className="text-rose-500">*</span>
+              Gmail Thầy Mẫn <span className="text-rose-500">*</span>
             </label>
             <div className="relative">
               <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -114,7 +114,7 @@ export const TeacherLoginModal: React.FC<TeacherLoginModalProps> = ({
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Nhập mật khẩu giáo viên"
+                placeholder="Nhập mật khẩu"
                 required
                 className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-medium"
               />

@@ -4,7 +4,6 @@ import {
   User,
   Calendar,
   MapPin,
-  Mail,
   Phone,
   Users,
   Send,
@@ -17,14 +16,12 @@ import {
   ArrowLeft,
   ShieldCheck,
   Check,
+  Award,
+  Target,
 } from 'lucide-react';
 import { StudentInput, StudentSubmission } from '../types';
 import { formatDateVN } from '../utils/excelExport';
-import {
-  saveStudentSafe,
-  cleanPhoneVN,
-  cleanEmailVN,
-} from '../services/studentStorage';
+import { saveStudentSafe, cleanPhoneVN } from '../services/studentStorage';
 
 interface StudentFormProps {
   onSubmitSuccess: (data: StudentSubmission) => void;
@@ -41,7 +38,7 @@ export const StudentForm: React.FC<StudentFormProps> = ({
     hamlet: '',
     village: '',
     commune: '',
-    email: '',
+    aspiration: 'Đại học',
     studentPhone: '',
     hasNoStudentPhone: false,
     parentPhone: '',
@@ -68,16 +65,6 @@ export const StudentForm: React.FC<StudentFormProps> = ({
     setFormData((prev) => ({ ...prev, fullName: val }));
   };
 
-  const handleQuickAppendGmail = () => {
-    if (!formData.email.includes('@')) {
-      setFormData((prev) => ({
-        ...prev,
-        email: prev.email.trim() ? `${prev.email.trim()}@gmail.com` : '@gmail.com',
-      }));
-    }
-  };
-
-  // Comprehensive and forgiving Vietnamese validation
   const validate = (): string | null => {
     if (!formData.fullName || !formData.fullName.trim()) {
       return 'Vui lòng điền đầy đủ Họ và tên học sinh';
@@ -88,17 +75,11 @@ export const StudentForm: React.FC<StudentFormProps> = ({
     if (!formData.commune || !formData.commune.trim()) {
       return 'Vui lòng điền Xã (mới) / Phường hiện tại';
     }
-
-    // Check Gmail
-    const cleanEmail = cleanEmailVN(formData.email);
-    if (!cleanEmail) {
-      return 'Vui lòng điền địa chỉ Gmail cá nhân';
-    }
-    if (!cleanEmail.includes('@') || !cleanEmail.includes('.')) {
-      return 'Địa chỉ Gmail chưa đúng (Ví dụ: tenhocsinh@gmail.com)';
+    if (!formData.aspiration) {
+      return 'Vui lòng chọn Nguyện vọng (Đại học hoặc Tốt nghiệp)';
     }
 
-    // Check Student phone if not checked
+    // Check Student phone if entered and not checked
     if (!formData.hasNoStudentPhone && formData.studentPhone.trim()) {
       const cleanSP = cleanPhoneVN(formData.studentPhone);
       if (cleanSP.length < 9 || cleanSP.length > 11) {
@@ -118,7 +99,6 @@ export const StudentForm: React.FC<StudentFormProps> = ({
     return null;
   };
 
-  // Core execution: save data safely
   const executeSubmit = async () => {
     const error = validate();
     if (error) {
@@ -131,11 +111,10 @@ export const StudentForm: React.FC<StudentFormProps> = ({
     setIsSubmitting(true);
 
     try {
-      // Clean up values before saving
       const payload: StudentInput = {
         ...formData,
         fullName: formData.fullName.trim(),
-        email: cleanEmailVN(formData.email),
+        aspiration: formData.aspiration || 'Đại học',
         studentPhone: formData.hasNoStudentPhone ? '' : cleanPhoneVN(formData.studentPhone),
         parentPhone: cleanPhoneVN(formData.parentPhone),
         commune: formData.commune.trim(),
@@ -155,19 +134,17 @@ export const StudentForm: React.FC<StudentFormProps> = ({
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: any) {
       console.error('Submit error:', err);
-      setErrorMessage(err.message || 'Đã có lỗi xảy ra khi gửi dữ liệu. Vui lòng thử lại!');
+      setErrorMessage(err.message || 'Đã có lỗi xảy ra khi gửi dữ liệu cho Thầy Mẫn. Vui lòng thử lại!');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Direct submit from form
   const handleDirectSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     executeSubmit();
   };
 
-  // Proceed to preview screen
   const handleProceedToPreview = (e: React.FormEvent) => {
     e.preventDefault();
     const error = validate();
@@ -182,7 +159,6 @@ export const StudentForm: React.FC<StudentFormProps> = ({
     window.scrollTo({ top: 80, behavior: 'smooth' });
   };
 
-  // Back to edit
   const handleBackToEdit = () => {
     setIsPreviewMode(false);
     setErrorMessage(null);
@@ -198,7 +174,7 @@ export const StudentForm: React.FC<StudentFormProps> = ({
       hamlet: '',
       village: '',
       commune: '',
-      email: '',
+      aspiration: 'Đại học',
       studentPhone: '',
       hasNoStudentPhone: false,
       parentPhone: '',
@@ -221,17 +197,17 @@ export const StudentForm: React.FC<StudentFormProps> = ({
         </div>
 
         <h2 className="text-2xl font-extrabold text-slate-800">
-          Gửi thông tin thành công!
+          Gửi thông tin cho Thầy Mẫn thành công!
         </h2>
         <p className="text-slate-600 mt-2 text-sm max-w-md mx-auto">
-          Thông tin của em <strong className="text-emerald-700 font-bold">{submittedStudent.fullName}</strong> đã được lưu trữ và tổng hợp tự động vào danh sách lớp của Thầy/Cô chủ nhiệm.
+          Thông tin của em <strong className="text-emerald-700 font-bold">{submittedStudent.fullName}</strong> đã được lưu trữ và tổng hợp tự động vào danh sách lớp Toán 12_4 của Thầy Mẫn.
         </p>
 
         {/* Summary Card */}
         <div className="my-6 p-5 bg-slate-50 rounded-2xl border border-slate-200/80 text-left space-y-3 text-xs sm:text-sm">
           <div className="font-semibold text-slate-700 border-b border-slate-200 pb-2 flex items-center justify-between">
             <span className="flex items-center gap-1.5 text-indigo-700">
-              <FileCheck2 className="w-4 h-4" /> Bản tóm tắt phiếu thu thập:
+              <FileCheck2 className="w-4 h-4" /> Tóm tắt thông tin đã nộp:
             </span>
             <span className="text-xs text-slate-400 font-normal">Mã: {submittedStudent.id}</span>
           </div>
@@ -256,8 +232,16 @@ export const StudentForm: React.FC<StudentFormProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <span className="text-slate-400 block text-xs">Gmail cá nhân:</span>
-              <span className="font-medium text-slate-800 font-mono">{submittedStudent.email}</span>
+              <span className="text-slate-400 block text-xs">Nguyện vọng thi:</span>
+              <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                submittedStudent.aspiration === 'Đại học'
+                  ? 'bg-blue-100 text-blue-800'
+                  : 'bg-emerald-100 text-emerald-800'
+              }`}>
+                {submittedStudent.aspiration === 'Đại học'
+                  ? '🎯 Xét tuyển Đại học'
+                  : '🎓 Xét Tốt nghiệp'}
+              </span>
             </div>
             <div>
               <span className="text-slate-400 block text-xs">SĐT cá nhân học sinh:</span>
@@ -275,6 +259,13 @@ export const StudentForm: React.FC<StudentFormProps> = ({
               {submittedStudent.parentPhone} ({submittedStudent.parentRelationship || 'Phụ huynh'})
             </span>
           </div>
+
+          {submittedStudent.notes && (
+            <div>
+              <span className="text-slate-400 block text-xs">Ghi chú gửi Thầy Mẫn:</span>
+              <span className="text-slate-700 italic">{submittedStudent.notes}</span>
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -296,13 +287,13 @@ export const StudentForm: React.FC<StudentFormProps> = ({
     return (
       <div className="max-w-3xl mx-auto my-6 sm:my-10 px-4 sm:px-0 animate-fade-in">
         {/* Preview Top Header */}
-        <div className="bg-gradient-to-r from-indigo-700 to-blue-700 text-white p-6 sm:p-7 rounded-3xl shadow-xl shadow-indigo-900/10 mb-6">
+        <div className="bg-gradient-to-r from-blue-700 via-indigo-700 to-teal-700 text-white p-6 sm:p-7 rounded-3xl shadow-xl shadow-indigo-900/10 mb-6">
           <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-indigo-200 mb-2">
             <Eye className="w-4 h-4 text-amber-300" />
             BƯỚC KIỂM TRA & XÁC NHẬN THÔNG TIN
           </div>
           <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-            Xem lại thông tin trước khi nộp
+            Xem lại thông tin gửi cho Thầy Mẫn
           </h2>
           <p className="mt-1 text-xs sm:text-sm text-indigo-100 max-w-xl">
             Vui lòng kiểm tra kỹ các mục bên dưới. Em có thể bấm <strong className="underline font-bold">Chỉnh sửa lại</strong> để sửa, hoặc bấm <strong className="underline font-bold">Xác nhận gửi</strong> để hoàn tất.
@@ -385,11 +376,11 @@ export const StudentForm: React.FC<StudentFormProps> = ({
             </div>
           </div>
 
-          {/* Item 3: Gmail & SĐT học sinh */}
+          {/* Item 3: Nguyện vọng & SĐT học sinh */}
           <div className="p-6 sm:p-7">
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                <Mail className="w-4 h-4 text-indigo-600" /> 3. Gmail & SĐT cá nhân học sinh
+                <Target className="w-4 h-4 text-indigo-600" /> 3. Nguyện vọng & Số điện thoại học sinh
               </span>
               <button
                 type="button"
@@ -401,8 +392,10 @@ export const StudentForm: React.FC<StudentFormProps> = ({
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-200/70">
               <div>
-                <span className="text-xs text-slate-400 block font-medium">Gmail cá nhân:</span>
-                <span className="text-sm font-semibold text-slate-800 font-mono">{cleanEmailVN(formData.email)}</span>
+                <span className="text-xs text-slate-400 block font-medium">Nguyện vọng:</span>
+                <span className="text-sm font-bold text-indigo-700">
+                  {formData.aspiration === 'Đại học' ? '🎯 Xét tuyển Đại học / Cao đẳng' : '🎓 Chỉ xét Tốt nghiệp THPT'}
+                </span>
               </div>
               <div>
                 <span className="text-xs text-slate-400 block font-medium">SĐT cá nhân học sinh:</span>
@@ -450,7 +443,7 @@ export const StudentForm: React.FC<StudentFormProps> = ({
           {formData.notes && (
             <div className="p-6 sm:p-7">
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">
-                Ghi chú thêm:
+                Ghi chú gửi Thầy Mẫn:
               </span>
               <p className="text-xs sm:text-sm text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-200 italic">
                 {formData.notes}
@@ -478,12 +471,12 @@ export const StudentForm: React.FC<StudentFormProps> = ({
               {isSubmitting ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  <span>Đang gửi thông tin...</span>
+                  <span>Đang gửi cho Thầy Mẫn...</span>
                 </>
               ) : (
                 <>
                   <Check className="w-5 h-5" />
-                  <span>Xác nhận chính xác & Gửi phiếu</span>
+                  <span>Xác nhận chính xác & Gửi cho Thầy Mẫn</span>
                 </>
               )}
             </button>
@@ -505,28 +498,28 @@ export const StudentForm: React.FC<StudentFormProps> = ({
         <div className="relative z-10">
           <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/15 backdrop-blur-md rounded-full text-xs font-semibold text-blue-100 mb-3 border border-white/20">
             <GraduationCap className="w-4 h-4 text-amber-300" />
-            LỚP LMS 11A7 • NĂM HỌC 2026 - 2027
+            LỚP TOÁN 12_4 • THẦY MẪN • NĂM HỌC 2026 - 2027
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-            Phiếu Điền Thông Tin học LMS
+            Phiếu Thu Thập Thông Tin Học Sinh - Lớp Toán 12_4
           </h1>
 
           <p className="mt-2 text-blue-100 text-xs sm:text-sm leading-relaxed max-w-2xl">
-            Chào các em! Thầy/Cô chủ nhiệm tạo biểu mẫu này để cập nhật hồ sơ lớp học và thông tin liên lạc. Các em điền đầy đủ và chính xác các mục dưới đây.
+            Chào các em! Thầy Mẫn tạo biểu mẫu này để cập nhật thông tin học sinh lớp Toán 12_4, nắm bắt nguyện vọng thi cử và thông tin liên lạc. Các em điền đầy đủ và chính xác các mục dưới đây.
           </p>
 
           <div className="mt-4 pt-3 border-t border-white/20 flex flex-wrap items-center justify-between gap-3 text-xs text-blue-100">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Học sinh <strong>không cần đăng nhập</strong>. Điền xong bấm <strong>Gửi</strong>.</span>
+              <span>Học sinh <strong>không cần đăng nhập</strong>. Điền xong bấm <strong>Gửi cho Thầy Mẫn</strong>.</span>
             </div>
             <button
               type="button"
               onClick={onOpenTeacherModal}
               className="text-xs bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-lg text-white font-medium transition backdrop-blur-sm cursor-pointer"
             >
-              Khu vực Giáo viên →
+              Khu vực Thầy Mẫn →
             </button>
           </div>
         </div>
@@ -544,7 +537,6 @@ export const StudentForm: React.FC<StudentFormProps> = ({
           </div>
         )}
 
-        {/* Use noValidate to avoid silent browser blocking */}
         <form noValidate onSubmit={handleDirectSubmit} className="space-y-8">
           {/* Section 1: Thông tin học sinh & Ngày sinh */}
           <div className="space-y-4">
@@ -611,7 +603,7 @@ export const StudentForm: React.FC<StudentFormProps> = ({
             <div className="bg-slate-50/80 p-4 rounded-2xl border border-slate-200/70 space-y-4">
               <p className="text-xs text-slate-600 flex items-center gap-1.5">
                 <MapPin className="w-4 h-4 text-indigo-600 shrink-0" />
-                Vui lòng điền chi tiết 3 cấp hành chính theo yêu cầu của Thầy/Cô:
+                Vui lòng điền chi tiết 3 cấp hành chính theo yêu cầu của Thầy Mẫn:
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -675,45 +667,52 @@ export const StudentForm: React.FC<StudentFormProps> = ({
             </div>
           </div>
 
-          {/* Section 3: Gmail cá nhân & SĐT cá nhân */}
+          {/* Section 3: Nguyện vọng & Số điện thoại của học sinh */}
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-indigo-700 font-bold text-sm uppercase tracking-wider pb-2 border-b border-slate-100">
               <div className="w-6 h-6 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-black">
                 3
               </div>
-              <span>Gmail cá nhân & Số điện thoại của học sinh</span>
+              <span>Nguyện vọng (Đại học / Tốt nghiệp) & Số điện thoại học sinh</span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Gmail cá nhân */}
+              {/* Nguyện vọng: Đại học / Tốt nghiệp */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Địa chỉ Gmail cá nhân <span className="text-rose-500">*</span>
+                  Nguyện vọng thi <span className="text-rose-500">*</span>
                 </label>
-                <div className="relative">
-                  <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    required
-                    value={formData.email}
-                    onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, email: e.target.value }))
-                    }
-                    placeholder="tenhocsinh@gmail.com"
-                    className="w-full pl-10 pr-24 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-medium transition"
-                  />
-                  {!formData.email.includes('@') && formData.email.trim() && (
-                    <button
-                      type="button"
-                      onClick={handleQuickAppendGmail}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-lg transition cursor-pointer"
-                    >
-                      + @gmail.com
-                    </button>
-                  )}
+                <div className="grid grid-cols-2 gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setFormData((prev) => ({ ...prev, aspiration: 'Đại học' }))}
+                    className={`py-3 px-3 rounded-xl border text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition cursor-pointer ${
+                      formData.aspiration === 'Đại học'
+                        ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-600/25 ring-2 ring-blue-300'
+                        : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                    }`}
+                  >
+                    <Target className="w-4 h-4" />
+                    <span>Đại học</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setFormData((prev) => ({ ...prev, aspiration: 'Tốt nghiệp' }))}
+                    className={`py-3 px-3 rounded-xl border text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition cursor-pointer ${
+                      formData.aspiration === 'Tốt nghiệp'
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-600/25 ring-2 ring-emerald-300'
+                        : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                    }`}
+                  >
+                    <Award className="w-4 h-4" />
+                    <span>Tốt nghiệp</span>
+                  </button>
                 </div>
-                <p className="text-[11px] text-slate-400 mt-1 pl-1">
-                  Nhận thông báo, tài liệu học tập
+                <p className="text-[11px] text-slate-500 mt-1.5 pl-1">
+                  {formData.aspiration === 'Đại học'
+                    ? '🎯 Mục tiêu xét tuyển vào các trường Đại học / Cao đẳng'
+                    : '🎓 Mục tiêu hoàn thành kỳ thi Tốt nghiệp THPT'}
                 </p>
               </div>
 
@@ -763,7 +762,7 @@ export const StudentForm: React.FC<StudentFormProps> = ({
                 </div>
                 <p className="text-[11px] text-slate-400 mt-1 pl-1">
                   {formData.hasNoStudentPhone
-                    ? 'Thầy/Cô sẽ liên hệ qua số điện thoại của Phụ huynh'
+                    ? 'Thầy Mẫn sẽ liên hệ qua số điện thoại của Phụ huynh'
                     : 'Nhập số điện thoại của em (nếu có)'}
                 </p>
               </div>
@@ -841,7 +840,7 @@ export const StudentForm: React.FC<StudentFormProps> = ({
               </div>
 
               <p className="text-[11px] text-emerald-800">
-                ⚠️ Bắt buộc điền đúng số điện thoại của Phụ huynh để Thầy/Cô liên hệ khi có việc cần thiết.
+                ⚠️ Bắt buộc điền đúng số điện thoại của Phụ huynh để Thầy Mẫn liên hệ trao đổi học tập hoặc khi cần thiết.
               </p>
             </div>
           </div>
@@ -849,7 +848,7 @@ export const StudentForm: React.FC<StudentFormProps> = ({
           {/* Optional: Ghi chú thêm */}
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-              Ghi chú thêm gửi Thầy/Cô chủ nhiệm <span className="text-slate-400 font-normal">(nếu có)</span>
+              Ghi chú thêm gửi Thầy Mẫn <span className="text-slate-400 font-normal">(nếu có)</span>
             </label>
             <textarea
               rows={2}
@@ -857,7 +856,7 @@ export const StudentForm: React.FC<StudentFormProps> = ({
               onChange={(e) =>
                 setFormData((prev) => ({ ...prev, notes: e.target.value }))
               }
-              placeholder="Ví dụ: Em không có điện thoại học chung với bạn Thị Nở..."
+              placeholder="Ví dụ: Khối thi dự kiến A00, D01...; Trường mục tiêu; Em cần Thầy hỗ trợ thêm phần hàm số..."
               className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
             />
           </div>
@@ -877,7 +876,7 @@ export const StudentForm: React.FC<StudentFormProps> = ({
               ) : (
                 <>
                   <Send className="w-5 h-5" />
-                  <span>Gửi thông tin cho Thầy/Cô chủ nhiệm</span>
+                  <span>Gửi thông tin cho Thầy Mẫn</span>
                 </>
               )}
             </button>
@@ -892,7 +891,7 @@ export const StudentForm: React.FC<StudentFormProps> = ({
             </button>
 
             <p className="text-center text-xs text-slate-400 pt-1">
-              Thông tin sẽ được lưu an toàn và tổng hợp tự động vào danh sách lớp của Thầy/Cô.
+              Thông tin sẽ được gửi an toàn trực tiếp đến Thầy Mẫn.
             </p>
           </div>
         </form>
